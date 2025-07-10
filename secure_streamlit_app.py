@@ -54,7 +54,7 @@ def health_check():
     """Health check endpoint for Docker containers and load balancers."""
     try:
         # Check if we're in a health check request
-        query_params = st.experimental_get_query_params()
+        query_params = st.query_params
         if 'health' in query_params or st.session_state.get('health_check_mode', False):
             # Return simple health status
             health_status = {
@@ -84,16 +84,16 @@ def health_check():
 def main():
     """Main Streamlit application with security integration and first-time setup."""
 
-    # Handle health check requests first
-    health_check()
-
-    # Configure Streamlit page
+    # Configure Streamlit page FIRST (must be the very first Streamlit command)
     st.set_page_config(
         page_title="SAM - Secure AI Assistant",
         page_icon="🧠",
         layout="wide",
         initial_sidebar_state="expanded"
     )
+
+    # Handle health check requests after page config
+    health_check()
 
     # Check for first-time user and route to setup wizard
     try:
