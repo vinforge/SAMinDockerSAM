@@ -1674,8 +1674,7 @@ def render_chat_interface():
         with st.chat_message("assistant"):
             st.markdown("Hello! 👋 I'm SAM")
 
-        # Show system status indicators for new sessions
-        render_system_status_indicators()
+
 
     # Phase 8 Web Search Integration Info
     with st.expander("🌐 Web Search Integration", expanded=False):
@@ -12091,56 +12090,7 @@ def simulate_self_reflect_for_demo(response_text: str, query: str):
     except Exception as e:
         logger.debug(f"SELF-REFLECT simulation error: {e}")
 
-def render_system_status_indicators():
-    """
-    Render system status indicators showing feature activation status.
 
-    This provides users with visibility into which SAM features are currently active.
-    """
-    try:
-        # Create a compact status bar
-        st.markdown("---")
-        st.markdown("### 🔧 **SAM System Status**")
-
-        # Create columns for status indicators
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            # SELF-REFLECT Status
-            self_reflect_enabled = True  # Would check actual config
-            if self_reflect_enabled:
-                st.success("🔍 **Self-Reflect**\n\nActive")
-            else:
-                st.warning("🔍 **Self-Reflect**\n\nInactive")
-
-        with col2:
-            # MEMOIR Status
-            memoir_enabled = st.session_state.get('memoir_enabled', False)
-            if memoir_enabled:
-                st.success("🧠 **MEMOIR**\n\nActive")
-            else:
-                st.warning("🧠 **MEMOIR**\n\nInactive")
-
-        with col3:
-            # Cognitive Distillation Status
-            cognitive_enabled = st.session_state.get('cognitive_distillation_initialized', False)
-            if cognitive_enabled:
-                st.success("🧠 **Cognitive**\n\nActive")
-            else:
-                st.warning("🧠 **Cognitive**\n\nInactive")
-
-        with col4:
-            # Security Status
-            security_enabled = True  # Always active in secure app
-            if security_enabled:
-                st.success("🛡️ **Security**\n\nActive")
-            else:
-                st.error("🛡️ **Security**\n\nInactive")
-
-        st.markdown("---")
-
-    except Exception as e:
-        logger.debug(f"System status indicators error: {e}")
 
 if __name__ == "__main__":
     main()
