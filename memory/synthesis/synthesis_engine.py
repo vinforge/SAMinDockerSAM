@@ -34,18 +34,19 @@ class SynthesisConfig:
     min_cluster_size: int = 5
     max_clusters: int = 20
     quality_threshold: float = 0.6
-    
+
     # Prompt generation parameters
     max_chunks_per_prompt: int = 8
     max_content_length: int = 2000
-    
+
     # Insight generation parameters
     llm_temperature: float = 0.7
     max_tokens: int = 200
-    
+
     # Output parameters
     output_directory: str = "synthesis_output"
-    min_insight_quality: float = 0.6
+    min_insight_quality: float = 0.3  # Lowered from 0.6 to 0.3 for better insight acceptance
+    fallback_insight_quality: float = 0.2  # Even lower threshold for fallback mode
 
     # Re-ingestion parameters (Phase 8B)
     enable_reingestion: bool = True
@@ -163,6 +164,9 @@ class SynthesisEngine:
             logger.info("Phase 3: Generating synthesized insights...")
             insights = []
 
+            # Track insights for fallback mode
+            low_quality_insights = []
+
             for prompt in synthesis_prompts:
                 try:
                     logger.info(f"Attempting to generate insight for cluster {prompt.cluster_id}")
@@ -173,8 +177,12 @@ class SynthesisEngine:
                         if insight.confidence_score >= self.config.min_insight_quality:
                             insights.append(insight)
                             logger.info(f"✨ Accepted insight: {insight.insight_id}")
+                        elif insight.confidence_score >= self.config.fallback_insight_quality:
+                            # Store for potential fallback use
+                            low_quality_insights.append(insight)
+                            logger.info(f"📝 Stored low-quality insight for fallback: {insight.insight_id} (confidence: {insight.confidence_score:.2f})")
                         else:
-                            logger.warning(f"⚠️ Insight quality too low: {insight.confidence_score:.2f} < {self.config.min_insight_quality}")
+                            logger.warning(f"⚠️ Insight quality too low: {insight.confidence_score:.2f} < {self.config.fallback_insight_quality}")
                     else:
                         logger.warning(f"❌ No insight generated for cluster {prompt.cluster_id}")
 
@@ -183,8 +191,15 @@ class SynthesisEngine:
                     import traceback
                     logger.error(f"Traceback: {traceback.format_exc()}")
                     continue
-            
-            logger.info(f"Generated {len(insights)} high-quality insights")
+
+            # Fallback mode: If no high-quality insights, use low-quality ones
+            if not insights and low_quality_insights:
+                logger.warning(f"No high-quality insights found. Using {len(low_quality_insights)} low-quality insights as fallback.")
+                insights = low_quality_insights[:5]  # Limit to top 5 low-quality insights
+                for insight in insights:
+                    logger.info(f"🔄 Using fallback insight: {insight.insight_id} (confidence: {insight.confidence_score:.2f})")
+
+            logger.info(f"Generated {len(insights)} insights ({len(low_quality_insights)} additional low-quality insights available)")
             
             # Phase 4: Output Generation
             logger.info("Phase 4: Creating synthesis output...")

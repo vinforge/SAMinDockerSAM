@@ -838,11 +838,32 @@ class MemoryVectorStore:
             for file_path in self.storage_dir.glob("*.json"):
                 stats['total_size_mb'] += file_path.stat().st_size / (1024 * 1024)
             
-            # Find oldest and newest
+            # Find oldest and newest (with safe timestamp handling)
             if self.memory_chunks:
-                sorted_by_time = sorted(self.memory_chunks.values(), key=lambda c: c.timestamp)
-                stats['oldest_memory'] = sorted_by_time[0].timestamp
-                stats['newest_memory'] = sorted_by_time[-1].timestamp
+                try:
+                    # Convert timestamps to comparable format
+                    chunks_with_time = []
+                    for chunk in self.memory_chunks.values():
+                        try:
+                            # Handle different timestamp formats
+                            if isinstance(chunk.timestamp, str):
+                                from datetime import datetime
+                                timestamp = datetime.fromisoformat(chunk.timestamp.replace('Z', '+00:00'))
+                            else:
+                                timestamp = chunk.timestamp
+                            chunks_with_time.append((timestamp, chunk))
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"Invalid timestamp format for chunk {chunk.chunk_id}: {e}")
+                            continue
+
+                    if chunks_with_time:
+                        sorted_by_time = sorted(chunks_with_time, key=lambda x: x[0])
+                        stats['oldest_memory'] = str(sorted_by_time[0][1].timestamp)
+                        stats['newest_memory'] = str(sorted_by_time[-1][1].timestamp)
+                except Exception as e:
+                    logger.warning(f"Error sorting memories by timestamp: {e}")
+                    stats['oldest_memory'] = "Unable to determine"
+                    stats['newest_memory'] = "Unable to determine"
 
                 # Most accessed (with safe integer conversion)
                 try:
@@ -861,7 +882,15 @@ class MemoryVectorStore:
             
         except Exception as e:
             logger.error(f"Error getting memory stats: {e}")
-            return {'error': str(e)}
+            import traceback
+            logger.error(f"Memory stats error traceback: {traceback.format_exc()}")
+            return {
+                'total_memories': len(self.memory_chunks) if hasattr(self, 'memory_chunks') else 0,
+                'store_type': self.store_type.value if hasattr(self, 'store_type') else 'unknown',
+                'embedding_dimension': getattr(self, 'embedding_dimension', 0),
+                'storage_directory': str(getattr(self, 'storage_dir', 'unknown')),
+                'error': str(e)
+            }
     
     def _initialize_vector_store(self):
         """Initialize the vector store backend."""

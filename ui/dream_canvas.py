@@ -94,6 +94,39 @@ def render_dream_canvas():
     # Advanced Synthesis Controls - Additional options (less prominent)
     with st.expander("⚙️ Advanced Synthesis Controls", expanded=False):
         st.markdown("*Configure auto-synthesis, view history, and adjust synthesis settings*")
+
+        # Synthesis Configuration
+        st.markdown("#### 🎛️ Synthesis Configuration")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            insight_threshold = st.slider(
+                "Insight Quality Threshold",
+                min_value=0.1,
+                max_value=0.8,
+                value=0.3,
+                step=0.1,
+                help="Lower values accept more insights but may reduce quality. Higher values are more selective."
+            )
+
+        with col2:
+            max_clusters = st.slider(
+                "Maximum Clusters",
+                min_value=5,
+                max_value=50,
+                value=20,
+                step=5,
+                help="Maximum number of memory clusters to analyze for synthesis."
+            )
+
+        # Store configuration in session state
+        st.session_state.synthesis_config = {
+            'min_insight_quality': insight_threshold,
+            'max_clusters': max_clusters
+        }
+
+        st.markdown("---")
+
         try:
             render_synthesis_controls()
         except Exception as e:
@@ -151,7 +184,18 @@ def render_dream_canvas():
 
                     # Run synthesis
                     memory_store = get_memory_store()
-                    synthesis_engine = SynthesisEngine()
+
+                    # Use custom configuration if available
+                    if hasattr(st.session_state, 'synthesis_config'):
+                        from memory.synthesis.synthesis_engine import SynthesisConfig
+                        config = SynthesisConfig(
+                            min_insight_quality=st.session_state.synthesis_config.get('min_insight_quality', 0.3),
+                            max_clusters=st.session_state.synthesis_config.get('max_clusters', 20)
+                        )
+                        synthesis_engine = SynthesisEngine(config=config)
+                        st.info(f"🎛️ Using custom settings: Quality threshold {config.min_insight_quality}, Max clusters {config.max_clusters}")
+                    else:
+                        synthesis_engine = SynthesisEngine()
 
                     result = synthesis_engine.run_synthesis(memory_store, visualize=True)
 
@@ -170,8 +214,16 @@ def render_dream_canvas():
                     # Update synthesis history
                     update_synthesis_history(synthesis_results)
 
-                    st.success(f"✨ Synthesis complete! Generated **{result.insights_generated} insights** from **{result.clusters_found} clusters**.")
-                    st.info("💡 Use 'View Synthesis Results' below to explore the generated insights.")
+                    # Provide detailed feedback based on results
+                    if result.insights_generated > 0:
+                        st.success(f"✨ Synthesis complete! Generated **{result.insights_generated} insights** from **{result.clusters_found} clusters**.")
+                        st.info("💡 Use 'View Synthesis Results' below to explore the generated insights.")
+                    elif result.clusters_found > 0:
+                        st.warning(f"⚠️ Found **{result.clusters_found} clusters** but generated **0 insights**. This may indicate:")
+                        st.info("• Insight quality threshold is too high\n• LLM responses need improvement\n• Memory clusters lack sufficient content")
+                        st.info("💡 Try running synthesis again or check the logs for more details.")
+                    else:
+                        st.warning("⚠️ No memory clusters found for synthesis. Try adding more conversations or documents to SAM's memory.")
 
                 except Exception as e:
                     logger.error(f"Synthesis failed: {e}")
@@ -751,7 +803,16 @@ def render_synthesis_controls():
                     # Update synthesis history
                     update_synthesis_history(synthesis_results)
 
-                    st.success(f"✨ Synthesis complete! Generated {result.insights_generated} insights from {result.clusters_found} clusters.")
+                    # Provide detailed feedback based on results
+                    if result.insights_generated > 0:
+                        st.success(f"✨ Synthesis complete! Generated {result.insights_generated} insights from {result.clusters_found} clusters.")
+                    elif result.clusters_found > 0:
+                        st.warning(f"⚠️ Found {result.clusters_found} clusters but generated 0 insights. This may indicate:")
+                        st.info("• Insight quality threshold is too high\n• LLM responses need improvement\n• Memory clusters lack sufficient content")
+                        st.info("💡 Try running synthesis again or check the logs for more details.")
+                    else:
+                        st.warning("⚠️ No memory clusters found for synthesis. Try adding more conversations or documents to SAM's memory.")
+
                     st.rerun()
 
                 except Exception as e:
