@@ -222,40 +222,40 @@ def fetch_with_requests(url):
     try:
         import requests
         from bs4 import BeautifulSoup
-        
+
         headers = {{
             'User-Agent': '{self.user_agent}'
         }}
-        
+
         response = requests.get(url, headers=headers, timeout={self.timeout})
         response.raise_for_status()
-        
+
         soup = BeautifulSoup(response.content, 'html.parser')
-        
+
         # Remove script and style elements
         for script in soup(["script", "style"]):
             script.decompose()
-        
+
         # Extract text content
         text = soup.get_text()
-        
+
         # Clean up whitespace
         lines = (line.strip() for line in text.splitlines())
-        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        chunks = (phrase.strip() for line in lines for phrase in str(line).split("  "))
         text = ' '.join(chunk for chunk in chunks if chunk)
-        
+
         return text
-        
+
     except Exception as e:
         raise Exception(f"Requests fetch failed: {{e}}")
 
 def main():
     url = "{url}"
-    
+
     try:
         # Try requests method (more reliable for now)
         content = fetch_with_requests(url)
-        
+
         result = {{
             "url": url,
             "content": content,
@@ -267,9 +267,9 @@ def main():
                 "user_agent": "{self.user_agent}"
             }}
         }}
-        
+
         print(json.dumps(result))
-        
+
     except Exception as e:
         error_result = {{
             "url": url,
