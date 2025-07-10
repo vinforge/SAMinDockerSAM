@@ -8864,14 +8864,24 @@ def generate_final_response(user_question: str, force_local: bool = False) -> st
             logger.info("🎯 Single-stage pipeline: Generating response...")
             final_response = generate_draft_response(user_question, force_local)
 
+            # Handle tuple return for web search escalation
+            if isinstance(final_response, tuple) and len(final_response) == 2:
+                logger.info("🌐 Web search escalation detected in single-stage pipeline")
+                return final_response  # Return the tuple directly for escalation handling
+
         else:
             # Two-stage pipeline (treatment or default)
             # Stage 1: Generate a factually-grounded draft
             logger.info("🎯 Stage 1: Generating draft response...")
             draft_response = generate_draft_response(user_question, force_local)
 
+            # Handle tuple return for web search escalation
+            if isinstance(draft_response, tuple) and len(draft_response) == 2:
+                logger.info("🌐 Web search escalation detected in two-stage pipeline")
+                return draft_response  # Return the tuple directly for escalation handling
+
             # Calculate draft confidence (simple heuristic)
-            draft_confidence = min(0.8, len(draft_response.split()) / 100.0) if draft_response else 0.1
+            draft_confidence = min(0.8, len(str(draft_response).split()) / 100.0) if draft_response else 0.1
 
             # Stage 2: Refine the draft with persona (if enabled)
             if enable_persona_refinement and pipeline_to_use == 'two_stage':
