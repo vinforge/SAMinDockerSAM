@@ -181,21 +181,27 @@ def check_docker_availability():
     """Check if Docker and Docker Compose are available."""
     print_status("\n🔧 Checking Docker Availability", "info")
     print("=" * 50)
-    
-    # Check Docker
-    docker_available = os.system("docker --version > /dev/null 2>&1") == 0
+
+    # Check Docker (Windows-compatible)
+    import platform
+    if platform.system() == "Windows":
+        docker_available = os.system("docker --version >nul 2>&1") == 0
+        compose_available = os.system("docker compose version >nul 2>&1") == 0
+    else:
+        docker_available = os.system("docker --version > /dev/null 2>&1") == 0
+        compose_available = os.system("docker compose version > /dev/null 2>&1") == 0
+
     if docker_available:
         print_status("Docker: Available", "success")
     else:
         print_status("Docker: Not available or not in PATH", "error")
-    
-    # Check Docker Compose
-    compose_available = os.system("docker-compose --version > /dev/null 2>&1") == 0
+
+    # Check Docker Compose (modern syntax)
     if compose_available:
         print_status("Docker Compose: Available", "success")
     else:
         print_status("Docker Compose: Not available or not in PATH", "error")
-    
+
     return docker_available and compose_available
 
 def main():
