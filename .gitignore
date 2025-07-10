@@ -1,0 +1,43 @@
+# SAM Docker - Git Ignore
+
+# Data directories (will be in Docker volumes)
+data/
+memory_store/
+logs/
+uploads/
+cache/
+backups/
+chroma_db/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Security files
+security/keystore.json
+security/setup_status.json
+sam_pro_key.txt
+
+# Temporary files
+*.tmp
+*.log
+
+# Docker override files
+docker-compose.override.yml
