@@ -14,8 +14,8 @@
 #### **Windows (PowerShell)**
 ```powershell
 # Clone the repository
-git clone https://github.com/ro0TuX777/SAMinDocker.git
-cd SAMinDocker
+git clone https://github.com/vinforge/SAMinDockerSAM.git
+cd SAMinDockerSAM
 
 # Start SAM
 .\docker\quick_start.bat
@@ -24,14 +24,22 @@ cd SAMinDocker
 #### **Linux/macOS (Terminal)**
 ```bash
 # Clone the repository
-git clone https://github.com/ro0TuX777/SAMinDocker.git
-cd SAMinDocker
+git clone https://github.com/vinforge/SAMinDockerSAM.git
+cd SAMinDockerSAM
 
 # Start SAM
 ./docker/quick_start.sh
 ```
 
 **Access SAM at: http://localhost:8502**
+
+## ✨ **Latest Updates for Chat Users**
+
+- **📁 Enhanced Document Processing**: Drag & drop file upload directly in chat
+- **💬 Improved Conversation Isolation**: True 'New Chat' functionality
+- **🧠 Better Memory Management**: Enhanced search and organization
+- **🔒 Streamlined Security**: Simplified setup with robust encryption
+- **🎯 Optimized for Daily Use**: Focus on smooth chat experience
 
 ## 📦 What's Included
 
@@ -123,7 +131,7 @@ All data is preserved in Docker volumes:
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/ro0TuX777/SAMinDocker/issues)
+- **Issues**: [GitHub Issues](https://github.com/vinforge/SAMinDockerSAM/issues)
 - **Documentation**: Complete guides included
 - **Original Project**: [SAM Main Repository](https://github.com/forge-1825/SAM)
 
