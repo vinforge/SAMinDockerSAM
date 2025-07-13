@@ -1016,18 +1016,53 @@ def render_sam_pro_sidebar():
                                         if result.get('invalid_format'):
                                             st.info("💡 **Key Format:** Keys should be in UUID format (e.g., 12345678-1234-1234-1234-123456789abc)")
                                         elif result.get('invalid_key'):
-                                            st.info("💡 **Need a key?** Register at [localhost:8503](http://localhost:8503) for free activation key delivery via email.")
+                                            st.info("💡 **Need a key?** Use the Quick SAM Pro Registration form below to get your free activation key instantly.")
 
                                 except Exception as e:
                                     st.error(f"❌ Activation failed: {e}")
                         else:
                             st.warning("⚠️ Please enter an activation key")
 
-                # Registration link for new users
+                # Quick registration form for new users
                 st.markdown("---")
-                st.markdown("🔑 **Need an Activation Key?**")
-                st.markdown("Register for free at: [localhost:8503](http://localhost:8503)")
-                st.caption("Keys are delivered automatically via email")
+                st.markdown("🔑 **Quick SAM Pro Registration**")
+
+                with st.form("quick_sam_pro_registration"):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        reg_name = st.text_input("👤 Name", placeholder="Your full name")
+                    with col2:
+                        reg_email = st.text_input("📧 Email", placeholder="your.email@example.com")
+
+                    reg_submitted = st.form_submit_button("🚀 Get My SAM Pro Key", type="primary")
+
+                    if reg_submitted:
+                        if reg_name.strip() and reg_email.strip() and '@' in reg_email:
+                            with st.spinner("🔄 Generating your SAM Pro key..."):
+                                try:
+                                    # Import registration functions
+                                    import sys
+                                    sys.path.insert(0, '.')
+                                    from sam_pro_registration import generate_sam_pro_key, add_key_to_keystore, add_key_to_entitlements
+
+                                    # Generate key
+                                    new_key = generate_sam_pro_key()
+
+                                    # Add to keystore and entitlements
+                                    keystore_success = add_key_to_keystore(new_key, reg_email.strip(), reg_name.strip())
+                                    entitlements_success = add_key_to_entitlements(new_key)
+
+                                    if keystore_success and entitlements_success:
+                                        st.success("🎉 **Registration Successful!**")
+                                        st.code(new_key, language=None)
+                                        st.info("💡 **Copy this key and paste it in the activation field above!**")
+                                    else:
+                                        st.error("❌ Registration failed. Please try again.")
+
+                                except Exception as e:
+                                    st.error(f"❌ Registration error: {e}")
+                        else:
+                            st.warning("⚠️ Please enter valid name and email address")
 
                 # Show what SAM Pro unlocks
                 with st.expander("🎯 What SAM Pro Unlocks", expanded=False):
