@@ -20,9 +20,21 @@ wait_for_service() {
     local attempt=1
 
     echo "⏳ Waiting for $service_name at $host:$port..."
-    
+
     while [ $attempt -le $max_attempts ]; do
-        if nc -z "$host" "$port" 2>/dev/null; then
+        # Use Python to test connectivity instead of netcat
+        if python3 -c "
+import socket
+import sys
+try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(5)
+    result = sock.connect_ex(('$host', $port))
+    sock.close()
+    sys.exit(0 if result == 0 else 1)
+except Exception:
+    sys.exit(1)
+" 2>/dev/null; then
             echo "✅ $service_name is ready!"
             return 0
         fi
@@ -30,7 +42,7 @@ wait_for_service() {
         sleep 2
         attempt=$((attempt + 1))
     done
-    
+
     echo "❌ Failed to connect to $service_name after $max_attempts attempts"
     return 1
 }
