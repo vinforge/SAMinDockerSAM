@@ -208,5 +208,17 @@
     "total_keys": 153,
     "hash_algorithm": "SHA-256",
     "last_updated": "2025-07-08T14:28:37.250263"
+  },
+  "sam_pro_keys": {
+    "486e6d35bf93d2e6a5748109bd11f84b514d2fee83546ad3575887c76ed1898b": {
+      "created_date": "2025-07-13T22:49:12.051697",
+      "key_type": "free_tier",
+      "status": "active"
+    },
+    "0e5a0ad2e1bed0dfdb95fe46b33acc7addf5a7e965b8bc90b43c082a653bdc46": {
+      "created_date": "2025-07-14T12:00:00.000000",
+      "key_type": "free_tier",
+      "status": "active"
+    }
   }
 }
