@@ -495,7 +495,41 @@ def render_basic_first_time_setup():
                 """)
 
                 st.markdown("---")
-                st.markdown("**💡 Alternative:** If you already have a key, you can skip setup and enter it in the main interface.")
+                st.markdown("### 🔑 **Already Have a Key?**")
+                st.markdown("If you generated a key using the command line or received one via email, enter it here:")
+
+                with st.form("setup_manual_key_entry"):
+                    manual_key = st.text_input(
+                        "SAM Pro Activation Key",
+                        placeholder="12345678-1234-1234-1234-123456789abc",
+                        help="Enter your SAM Pro activation key (UUID format)"
+                    )
+
+                    manual_key_submitted = st.form_submit_button("✅ **Activate SAM Pro**", type="primary")
+
+                    if manual_key_submitted:
+                        if manual_key.strip():
+                            with st.spinner("🔍 Validating activation key..."):
+                                try:
+                                    from sam.entitlements.feature_manager import get_feature_manager
+                                    feature_manager = get_feature_manager()
+                                    result = feature_manager.validate_key(manual_key.strip())
+
+                                    if result.get('success'):
+                                        setup_manager.update_setup_status('sam_pro_activated', True)
+                                        st.balloons()
+                                        st.success("🎉 **SAM Pro Activated Successfully!**")
+                                        st.markdown("**Proceeding to final setup step...**")
+                                        st.rerun()
+                                    else:
+                                        st.error(result.get('message', '❌ Invalid activation key'))
+                                        st.info("💡 **Double-check your key format:** Keys should be in UUID format (e.g., 12345678-1234-1234-1234-123456789abc)")
+
+                                except Exception as e:
+                                    st.error(f"❌ Activation failed: {e}")
+                                    st.info("💡 Please try again or contact support at vin@forge1825.net")
+                        else:
+                            st.warning("⚠️ Please enter an activation key")
 
                 # Show what they're getting
                 with st.expander("🌟 **What You're Getting with SAM Pro**", expanded=False):
