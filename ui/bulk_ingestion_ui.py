@@ -414,11 +414,35 @@ class BulkIngestionUI:
                     # Folder path input with browser functionality
                     st.markdown("**📁 Select Folder to Ingest:**")
 
-                    # Initialize session state for folder browser
+                    # Initialize session state for folder browser with robust path handling
                     if 'current_browse_path' not in st.session_state:
-                        st.session_state.current_browse_path = str(Path.home())
+                        try:
+                            # Use user's home directory as default
+                            home_path = Path.home()
+                            if home_path.exists() and home_path.is_dir():
+                                st.session_state.current_browse_path = str(home_path)
+                            else:
+                                # Fallback to current working directory
+                                st.session_state.current_browse_path = str(Path.cwd())
+                        except Exception as e:
+                            # Ultimate fallback to root or current directory
+                            st.session_state.current_browse_path = str(Path.cwd())
+                            st.warning(f"⚠️ Could not access home directory: {e}")
+
                     if 'selected_folder_path' not in st.session_state:
                         st.session_state.selected_folder_path = ""
+
+                    # Validate current browse path and reset if invalid
+                    try:
+                        current_path_obj = Path(st.session_state.current_browse_path)
+                        if not current_path_obj.exists() or not current_path_obj.is_dir():
+                            st.warning(f"⚠️ Invalid path detected: {st.session_state.current_browse_path}")
+                            st.session_state.current_browse_path = str(Path.home())
+                            st.info("🔄 Reset to home directory")
+                    except Exception as e:
+                        st.error(f"❌ Path validation error: {e}")
+                        st.session_state.current_browse_path = str(Path.cwd())
+                        st.info("🔄 Reset to current directory")
 
                     # Folder browser toggle
                     use_browser = st.checkbox("🗂️ Use Folder Browser", key="use_folder_browser",
@@ -432,7 +456,7 @@ class BulkIngestionUI:
 
                         # Navigation buttons (moved outside form)
                         st.markdown("**📁 Navigate Folders:**")
-                        col_nav1, col_nav2, col_nav3 = st.columns([1, 1, 2])
+                        col_nav1, col_nav2, col_nav3, col_nav4 = st.columns([1, 1, 1, 2])
 
                         with col_nav1:
                             nav_parent = st.form_submit_button("⬆️ Parent")
@@ -445,10 +469,35 @@ class BulkIngestionUI:
                         with col_nav2:
                             nav_home = st.form_submit_button("🏠 Home")
                             if nav_home:
-                                st.session_state.current_browse_path = str(Path.home())
-                                st.rerun()
+                                try:
+                                    home_path = Path.home()
+                                    if home_path.exists():
+                                        st.session_state.current_browse_path = str(home_path)
+                                    else:
+                                        st.session_state.current_browse_path = str(Path.cwd())
+                                        st.warning("⚠️ Home directory not accessible, using current directory")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"❌ Error navigating to home: {e}")
+                                    st.session_state.current_browse_path = str(Path.cwd())
+                                    st.rerun()
 
                         with col_nav3:
+                            reset_browser = st.form_submit_button("🔄 Reset")
+                            if reset_browser:
+                                try:
+                                    # Clear session state and reset to safe default
+                                    st.session_state.current_browse_path = str(Path.home())
+                                    st.session_state.selected_folder_path = ""
+                                    st.success("🔄 Browser reset to home directory")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.session_state.current_browse_path = str(Path.cwd())
+                                    st.session_state.selected_folder_path = ""
+                                    st.warning(f"⚠️ Reset to current directory: {e}")
+                                    st.rerun()
+
+                        with col_nav4:
                             # Quick navigation to common folders
                             common_folders = []
                             if system == "Windows":
@@ -476,12 +525,34 @@ class BulkIngestionUI:
                                         st.session_state.current_browse_path = path
                                         st.rerun()
 
-                        # List directories in current path
+                        # List directories in current path with enhanced error handling
                         try:
+                            # Validate current path before listing
+                            if not current_path.exists():
+                                st.error(f"❌ Path does not exist: {current_path}")
+                                st.info("🔄 Resetting to home directory...")
+                                st.session_state.current_browse_path = str(Path.home())
+                                st.rerun()
+                                return
+
+                            if not current_path.is_dir():
+                                st.error(f"❌ Path is not a directory: {current_path}")
+                                st.info("🔄 Resetting to home directory...")
+                                st.session_state.current_browse_path = str(Path.home())
+                                st.rerun()
+                                return
+
                             directories = []
-                            for item in current_path.iterdir():
-                                if item.is_dir() and not item.name.startswith('.'):
-                                    directories.append(item)
+                            try:
+                                for item in current_path.iterdir():
+                                    if item.is_dir() and not item.name.startswith('.'):
+                                        directories.append(item)
+                            except PermissionError:
+                                st.error("❌ Permission denied - cannot access this folder")
+                                return
+                            except Exception as iter_error:
+                                st.error(f"❌ Error reading directory contents: {iter_error}")
+                                return
 
                             directories.sort(key=lambda x: x.name.lower())
 
