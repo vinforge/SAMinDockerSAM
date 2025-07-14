@@ -212,19 +212,36 @@ class EntitlementValidator:
             
             # Hash the user's key
             key_hash = hashlib.sha256(user_key.encode('utf-8')).hexdigest()
-            
+            self.logger.debug(f"Generated hash for key: {key_hash[:16]}...")
+
             # Load valid hashes
             config = self._load_entitlements_config()
-            valid_hashes = config.get("valid_key_hashes", [])
-            
+            self.logger.debug(f"Loaded config keys: {list(config.keys())}")
+
+            # Support both old format (valid_key_hashes array) and new format (sam_pro_keys object)
+            valid_hashes = []
+
+            # Check new format first (sam_pro_keys object)
+            if "sam_pro_keys" in config:
+                sam_pro_keys = config["sam_pro_keys"]
+                for key_hash, key_info in sam_pro_keys.items():
+                    if key_info.get("status") == "active":
+                        valid_hashes.append(key_hash)
+
+            # Check old format (valid_key_hashes array)
+            if "valid_key_hashes" in config:
+                valid_hashes.extend(config["valid_key_hashes"])
+
+            self.logger.debug(f"Found {len(valid_hashes)} valid hashes")
+
             if not valid_hashes:
                 self.logger.warning("No valid key hashes found in configuration")
                 return {
                     "success": False,
-                    "message": "❌ Entitlement system not properly configured.",
+                    "message": "❌ No activation keys found. Please register for a SAM Pro key first.",
                     "config_error": True
                 }
-            
+
             # Check if hash matches
             if key_hash in valid_hashes:
                 # Activate pro features

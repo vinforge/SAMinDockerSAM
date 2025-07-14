@@ -80,8 +80,10 @@ def add_key_to_keystore(activation_key, user_email="user@example.com"):
 def add_key_to_entitlements(activation_key):
     """Add key hash to entitlements for validation."""
     try:
-        security_dir = ensure_security_directory()
-        entitlements_file = security_dir / "entitlements.json"
+        # Use the correct path where SAM expects entitlements
+        config_dir = Path("sam/config")
+        config_dir.mkdir(parents=True, exist_ok=True)
+        entitlements_file = config_dir / "entitlements.json"
         
         # Load existing entitlements or create new one
         entitlements = {}
