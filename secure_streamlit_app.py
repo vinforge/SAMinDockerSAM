@@ -8176,7 +8176,7 @@ def search_unified_memory(query: str, max_results: int = 5) -> list:
                     secure_results = st.session_state.secure_memory_store.enhanced_search_memories(
                         query=query,
                         max_results=max_results * 2,  # Get more candidates for better results
-                        memory_types=[MemoryType.DOCUMENT],  # Focus on documents - using enum
+                        memory_type=MemoryType.DOCUMENT,  # Focus on documents - using enum (FIXED: singular)
                         tags=['uploaded', 'document', 'whitepaper', 'pdf']  # Target uploaded content
                     )
                     logger.info(f"📄 Enhanced secure search returned {len(secure_results)} document results")
@@ -8184,8 +8184,7 @@ def search_unified_memory(query: str, max_results: int = 5) -> list:
                     secure_results = st.session_state.secure_memory_store.search_memories(
                         query=query,
                         max_results=max_results * 2,  # Get more candidates for better results
-                        memory_types=[MemoryType.DOCUMENT],  # Focus on documents - using enum
-                        tags=['uploaded', 'document', 'whitepaper', 'pdf']  # Target uploaded content
+                        memory_type=MemoryType.DOCUMENT,  # Focus on documents - using enum (FIXED: singular)
                     )
                     logger.info(f"📄 Regular secure search returned {len(secure_results)} document results")
 
@@ -8213,7 +8212,7 @@ def search_unified_memory(query: str, max_results: int = 5) -> list:
                 web_results = web_store.enhanced_search_memories(
                     query=query,
                     max_results=max_results,
-                    memory_types=[MemoryType.DOCUMENT],  # Use enum instead of strings
+                    memory_type=MemoryType.DOCUMENT,  # Use enum instead of strings (FIXED: singular)
                     tags=['consolidated', 'knowledge']
                 )
                 logger.info(f"🌐 Enhanced web knowledge search returned {len(web_results)} results")
@@ -10413,7 +10412,7 @@ def render_document_library():
         from memory.memory_vectorstore import MemoryType
         document_memories = st.session_state.secure_memory_store.search_memories(
             query="",
-            memory_types=[MemoryType.DOCUMENT],
+            memory_type=MemoryType.DOCUMENT,  # FIXED: singular
             max_results=1000
         )
         unique_docs = len(set(mem.chunk.metadata.get('filename', 'unknown') for mem in document_memories if hasattr(mem, 'chunk') and hasattr(mem.chunk, 'metadata') and mem.chunk.metadata))
@@ -10450,7 +10449,7 @@ def render_document_library():
             with st.spinner(f"🔍 Searching for '{doc_search}'..."):
                 search_results = st.session_state.secure_memory_store.search_memories(
                     query=doc_search,
-                    memory_types=[MemoryType.DOCUMENT],
+                    memory_type=MemoryType.DOCUMENT,  # FIXED: singular
                     max_results=50
                 )
                 logger.info(f"Document search: '{doc_search}' returned {len(search_results)} results")
@@ -10459,7 +10458,7 @@ def render_document_library():
             with st.spinner("📄 Loading documents..."):
                 search_results = st.session_state.secure_memory_store.search_memories(
                     query="",
-                    memory_types=[MemoryType.DOCUMENT],
+                    memory_type=MemoryType.DOCUMENT,  # FIXED: singular
                     max_results=100
                 )
                 logger.info(f"Document library loaded: {len(search_results)} total document chunks")
