@@ -75,7 +75,7 @@ RUN groupadd -r sam && useradd -r -g sam sam
 WORKDIR /app
 
 # Create necessary directories with proper permissions
-RUN mkdir -p /app/data /app/logs /app/memory_store /app/chroma_db /app/uploads \
+RUN mkdir -p /app/data /app/data/.sam /app/logs /app/memory_store /app/chroma_db /app/uploads \
     /app/cache /app/backups /app/config /app/security && \
     chown -R sam:sam /app
 

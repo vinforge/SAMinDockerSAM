@@ -24,8 +24,17 @@ class EntitlementValidator:
         else:
             self.config_path = Path(__file__).parent.parent / "config" / "entitlements.json"
         
-        # State file path (user's home directory)
-        self.state_dir = Path.home() / ".sam"
+        # State file path (application directory for Docker compatibility)
+        try:
+            # Try user home directory first
+            self.state_dir = Path.home() / ".sam"
+            # Test if we can create the directory
+            self.state_dir.mkdir(exist_ok=True)
+        except (PermissionError, OSError):
+            # Fallback to application directory if home directory isn't accessible
+            app_dir = Path(__file__).parent.parent.parent
+            self.state_dir = app_dir / "data" / ".sam"
+
         self.state_file = self.state_dir / "sam_state.json"
         
         # Rate limiting for activation attempts
@@ -33,7 +42,22 @@ class EntitlementValidator:
         self.attempt_window = 300  # 5 minutes
         
         # Ensure state directory exists
-        self.state_dir.mkdir(exist_ok=True)
+        try:
+            self.state_dir.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError) as e:
+            self.logger.warning(f"Could not create state directory {self.state_dir}: {e}")
+            # Try alternative location
+            app_dir = Path(__file__).parent.parent.parent
+            self.state_dir = app_dir / "data" / ".sam"
+            self.state_file = self.state_dir / "sam_state.json"
+            try:
+                self.state_dir.mkdir(parents=True, exist_ok=True)
+                self.logger.info(f"Using fallback state directory: {self.state_dir}")
+            except Exception as fallback_error:
+                self.logger.error(f"Failed to create fallback state directory: {fallback_error}")
+                # Use memory-only mode as last resort
+                self.state_dir = None
+                self.state_file = None
         
         self.logger.info("EntitlementValidator initialized")
     
@@ -57,9 +81,10 @@ class EntitlementValidator:
     def _load_state(self) -> Dict[str, Any]:
         """Load current activation state"""
         try:
-            if not self.state_file.exists():
+            # Handle case where state file is not available (memory-only mode)
+            if self.state_file is None or not self.state_file.exists():
                 return self._get_default_state()
-            
+
             with open(self.state_file, 'r') as f:
                 state = json.load(f)
             
@@ -87,9 +112,14 @@ class EntitlementValidator:
     def _save_state(self, state: Dict[str, Any]) -> bool:
         """Save activation state"""
         try:
+            # Handle case where state file is not available (memory-only mode)
+            if self.state_file is None:
+                self.logger.debug("State file not available, using memory-only mode")
+                return True
+
             with open(self.state_file, 'w') as f:
                 json.dump(state, f, indent=2)
-            
+
             self.logger.debug("State saved successfully")
             return True
             
