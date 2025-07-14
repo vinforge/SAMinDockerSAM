@@ -441,8 +441,11 @@ def render_basic_first_time_setup():
 
         elif next_step == 'sam_pro_activation':
             st.markdown("## 🔑 Step 2: Activate SAM Pro")
+
+            # Check if we have a pre-generated key
             sam_pro_key = setup_manager.get_sam_pro_key()
             if sam_pro_key:
+                st.success("✅ **SAM Pro Key Ready!**")
                 st.code(sam_pro_key, language=None)
                 st.markdown("**💾 Important: Save this key!**")
 
@@ -451,7 +454,75 @@ def render_basic_first_time_setup():
                     st.success("🎉 SAM Pro activated!")
                     st.rerun()
             else:
-                st.warning("No SAM Pro key found. Please run setup again.")
+                # No pre-generated key, show registration form
+                st.info("🔑 **Get Your Free SAM Pro Key**")
+                st.markdown("Register below to get instant access to SAM's revolutionary Procedural Intelligence System:")
+
+                with st.form("setup_sam_pro_registration"):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        setup_reg_name = st.text_input("👤 **Full Name**", placeholder="Your full name")
+                    with col2:
+                        setup_reg_email = st.text_input("📧 **Email Address**", placeholder="your.email@example.com")
+
+                    setup_reg_submitted = st.form_submit_button("🚀 **Generate My SAM Pro Key**", type="primary")
+
+                    if setup_reg_submitted:
+                        if setup_reg_name.strip() and setup_reg_email.strip() and '@' in setup_reg_email:
+                            with st.spinner("🔄 Generating your SAM Pro activation key..."):
+                                try:
+                                    # Import registration functions
+                                    import sys
+                                    sys.path.insert(0, '.')
+                                    from sam_pro_registration import generate_sam_pro_key, add_key_to_keystore, add_key_to_entitlements
+
+                                    # Generate key
+                                    new_key = generate_sam_pro_key()
+
+                                    # Add to keystore and entitlements
+                                    keystore_success = add_key_to_keystore(new_key, setup_reg_email.strip(), setup_reg_name.strip())
+                                    entitlements_success = add_key_to_entitlements(new_key)
+
+                                    if keystore_success and entitlements_success:
+                                        st.balloons()
+                                        st.success("🎉 **Registration Successful!**")
+                                        st.markdown("### 🔑 **Your SAM Pro Activation Key:**")
+                                        st.code(new_key, language=None)
+                                        st.markdown("**💾 Important: Save this key!**")
+
+                                        # Auto-activate the key
+                                        if st.button("✅ **Activate SAM Pro Features**", type="primary"):
+                                            setup_manager.update_setup_status('sam_pro_activated', True)
+                                            st.success("🎉 SAM Pro activated!")
+                                            st.rerun()
+                                    else:
+                                        st.error("❌ Registration failed. Please try again.")
+
+                                except Exception as e:
+                                    st.error(f"❌ Registration error: {e}")
+                                    st.info("💡 Please try again or contact support at vin@forge1825.net")
+                        else:
+                            st.warning("⚠️ Please enter a valid name and email address")
+
+                # Show what they're getting
+                with st.expander("🌟 **What You're Getting with SAM Pro**", expanded=False):
+                    st.markdown("""
+                    **🧠 Revolutionary Procedural Intelligence:**
+                    • **95% Query Classification Accuracy** - AI that truly understands your intent
+                    • **Real-time Execution Tracking** - Monitor AI workflows as they happen
+                    • **Proactive Suggestions** - AI that anticipates your next steps
+
+                    **🎨 Advanced Features:**
+                    • **Dream Canvas** - Interactive memory visualization
+                    • **Cognitive Automation** - Automated reasoning workflows
+                    • **Advanced Analytics** - Deep insights into your data
+                    • **Enhanced Web Retrieval** - Premium search capabilities
+
+                    **🔒 Enterprise Security:**
+                    • **AES-256 Encryption** - Military-grade data protection
+                    • **Local Processing** - Your data never leaves your machine
+                    • **Zero Telemetry** - Complete privacy guaranteed
+                    """)
 
         elif next_step == 'onboarding':
             st.markdown("## 🎓 Step 3: Quick Tour")
