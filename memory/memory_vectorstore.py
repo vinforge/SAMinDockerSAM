@@ -849,11 +849,20 @@ class MemoryVectorStore:
                             if isinstance(chunk.timestamp, str):
                                 from datetime import datetime
                                 timestamp = datetime.fromisoformat(chunk.timestamp.replace('Z', '+00:00'))
-                            else:
+                            elif isinstance(chunk.timestamp, (int, float)):
+                                # Handle Unix timestamps
+                                from datetime import datetime
+                                timestamp = datetime.fromtimestamp(chunk.timestamp)
+                            elif hasattr(chunk.timestamp, 'timestamp'):
+                                # Already a datetime object
                                 timestamp = chunk.timestamp
+                            else:
+                                # Try to convert to string first, then parse
+                                from datetime import datetime
+                                timestamp = datetime.fromisoformat(str(chunk.timestamp).replace('Z', '+00:00'))
                             chunks_with_time.append((timestamp, chunk))
-                        except (ValueError, TypeError) as e:
-                            logger.warning(f"Invalid timestamp format for chunk {chunk.chunk_id}: {e}")
+                        except (ValueError, TypeError, OSError) as e:
+                            logger.warning(f"Invalid timestamp format for chunk {chunk.chunk_id}: {chunk.timestamp} - {e}")
                             continue
 
                     if chunks_with_time:
@@ -1167,6 +1176,23 @@ class MemoryVectorStore:
                     tags_str = metadata.get("tags", "")
                     tags = tags_str.split(",") if tags_str else []
 
+                    # Handle timestamp conversion from ChromaDB
+                    created_at = metadata.get("created_at", "")
+                    if isinstance(created_at, (int, float)):
+                        # Convert Unix timestamp to ISO format
+                        from datetime import datetime
+                        timestamp = datetime.fromtimestamp(created_at).isoformat()
+                    else:
+                        timestamp = str(created_at) if created_at else datetime.now().isoformat()
+
+                    # Handle last_accessed timestamp
+                    last_accessed = metadata.get("last_accessed", "")
+                    if isinstance(last_accessed, (int, float)):
+                        from datetime import datetime
+                        last_accessed = datetime.fromtimestamp(last_accessed).isoformat()
+                    elif not last_accessed:
+                        last_accessed = datetime.now().isoformat()
+
                     # Create MemoryChunk
                     chunk = MemoryChunk(
                         chunk_id=chunk_id,
@@ -1175,11 +1201,11 @@ class MemoryVectorStore:
                         embedding=embedding,
                         memory_type=memory_type,
                         source=metadata.get("source_path", ""),
-                        timestamp=metadata.get("created_at", ""),
+                        timestamp=timestamp,
                         tags=tags,
                         importance_score=float(metadata.get("importance_score", 0.0)),
                         access_count=int(metadata.get("access_count", 0)),
-                        last_accessed=metadata.get("last_accessed", ""),
+                        last_accessed=last_accessed,
                         metadata=metadata  # Store all metadata
                     )
 
