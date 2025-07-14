@@ -732,14 +732,39 @@ class BulkIngestionUI:
                         # Show debugging information using container instead of nested expander
                         st.markdown("**🔍 Path Debugging Information:**")
                         with st.container():
-                            st.code(f"""
+                            debug_info = f"""
 Original path: {source_path}
 Normalized path: {path_validation.get('normalized_path', 'N/A')}
 Path exists: {path_validation.get('exists', False)}
 Is directory: {path_validation.get('is_directory', False)}
-Platform: {path_validation.get('platform', 'Unknown')}
-Error details: {path_validation.get('error_details', 'None')}
-                            """)
+Platform: {path_validation.get('platform', 'Unknown')}"""
+
+                            # Add Docker mapping information if applicable
+                            if path_validation.get('docker_mapped', False):
+                                debug_info += f"""
+Docker mapped: Yes
+Mapped path: {path_validation.get('mapped_path', 'N/A')}"""
+
+                            debug_info += f"""
+Error details: {path_validation.get('error_details', 'None')}"""
+
+                            st.code(debug_info)
+
+                            # Show Docker-specific help if mapping was applied
+                            if path_validation.get('docker_mapped', False):
+                                st.warning("🐳 **Docker Path Mapping Detected**")
+                                st.markdown("""
+**To fix this issue:**
+1. Update your `docker-compose.yml` to mount the Windows directory
+2. Add this line under the `volumes:` section:
+   ```yaml
+   - C:\\Users:/app/host_users:ro
+   ```
+3. Restart Docker: `docker-compose down && docker-compose up -d`
+4. Use the mapped path: `/app/host_users/vin/Downloads/PDF`
+
+📖 **See the full guide:** `docs/DOCKER_BULK_INGESTION_SETUP.md`
+                                """)
 
             # Add helpful path suggestions outside the form using container instead of nested expander
             st.markdown("**💡 Need help finding folder paths?**")
@@ -930,31 +955,39 @@ Error details: {path_validation.get('error_details', 'None')}
             st.info("📝 No sources configured. Add a source above to get started.")
 
     def _validate_path(self, path_str: str) -> Dict[str, Any]:
-        """Enhanced cross-platform path validation."""
+        """Enhanced cross-platform path validation with Docker support."""
         import os
         import platform
 
         try:
             # Clean and normalize the path
             cleaned_path = path_str.strip()
+            original_path = cleaned_path
 
-            # Handle different path formats
-            if platform.system() == "Windows":
-                # Handle Windows paths
-                if cleaned_path.startswith("/") and not cleaned_path.startswith("//"):
-                    # Convert Unix-style path to Windows if needed
-                    cleaned_path = cleaned_path.replace("/", "\\")
+            # Check if running in Docker
+            is_docker = os.environ.get('SAM_DOCKER', 'false').lower() == 'true'
 
-                # Expand environment variables
-                cleaned_path = os.path.expandvars(cleaned_path)
-
+            if is_docker:
+                # Handle Docker path mapping for Windows paths
+                cleaned_path = self._map_docker_path(cleaned_path)
             else:
-                # Handle Unix-like systems (macOS, Linux)
-                # Expand user home directory (~)
-                cleaned_path = os.path.expanduser(cleaned_path)
+                # Handle different path formats for native execution
+                if platform.system() == "Windows":
+                    # Handle Windows paths
+                    if cleaned_path.startswith("/") and not cleaned_path.startswith("//"):
+                        # Convert Unix-style path to Windows if needed
+                        cleaned_path = cleaned_path.replace("/", "\\")
 
-                # Expand environment variables
-                cleaned_path = os.path.expandvars(cleaned_path)
+                    # Expand environment variables
+                    cleaned_path = os.path.expandvars(cleaned_path)
+
+                else:
+                    # Handle Unix-like systems (macOS, Linux)
+                    # Expand user home directory (~)
+                    cleaned_path = os.path.expanduser(cleaned_path)
+
+                    # Expand environment variables
+                    cleaned_path = os.path.expandvars(cleaned_path)
 
             # Create Path object and resolve
             path_obj = Path(cleaned_path).resolve()
@@ -971,9 +1004,17 @@ Error details: {path_validation.get('error_details', 'None')}
                 parent = path_obj.parent
                 if parent.exists():
                     error_details.append(f"Parent directory exists: {parent}")
-                    error_details.append("Path might be a typo or the directory needs to be created")
+                    if is_docker and original_path != cleaned_path:
+                        error_details.append(f"Docker path mapping applied: {original_path} -> {cleaned_path}")
+                        error_details.append("Make sure the host directory is mounted in docker-compose.yml")
+                        error_details.append("Example: - C:\\Users:/app/host_users:ro")
+                    else:
+                        error_details.append("Path might be a typo or the directory needs to be created")
                 else:
                     error_details.append(f"Parent directory does not exist: {parent}")
+                    if is_docker and original_path != cleaned_path:
+                        error_details.append(f"Docker path mapping applied: {original_path} -> {cleaned_path}")
+                        error_details.append("Host directory not mounted or mapping incorrect")
 
                 # Check for case sensitivity issues (common on macOS)
                 if platform.system() == "Darwin":  # macOS
@@ -1018,7 +1059,9 @@ Error details: {path_validation.get('error_details', 'None')}
                     "is_directory": is_directory,
                     "readable": readable,
                     "platform": platform.system(),
-                    "original_path": path_str
+                    "original_path": path_str,
+                    "docker_mapped": is_docker and original_path != cleaned_path,
+                    "mapped_path": cleaned_path if is_docker else None
                 }
             else:
                 error_msg = "Path validation failed"
@@ -1038,6 +1081,8 @@ Error details: {path_validation.get('error_details', 'None')}
                     "readable": readable,
                     "platform": platform.system(),
                     "original_path": path_str,
+                    "docker_mapped": is_docker and original_path != cleaned_path,
+                    "mapped_path": cleaned_path if is_docker else None,
                     "error_details": error_details
                 }
 
@@ -1053,6 +1098,31 @@ Error details: {path_validation.get('error_details', 'None')}
                 "original_path": path_str,
                 "error_details": [f"Exception: {str(e)}"]
             }
+
+    def _map_docker_path(self, windows_path: str) -> str:
+        """Map Windows host paths to Docker container paths."""
+        import re
+
+        # Normalize Windows path separators
+        normalized_path = windows_path.replace("\\", "/")
+
+        # Common Windows to Docker path mappings
+        path_mappings = {
+            r"^C:/Users": "/app/host_users",
+            r"^c:/users": "/app/host_users",  # lowercase variant
+            r"^/c/users": "/app/host_users",  # Git Bash style
+            # Add more mappings as needed
+        }
+
+        for pattern, replacement in path_mappings.items():
+            if re.match(pattern, normalized_path, re.IGNORECASE):
+                # Replace the matched pattern
+                mapped_path = re.sub(pattern, replacement, normalized_path, flags=re.IGNORECASE)
+                return mapped_path
+
+        # If no mapping found, return original path
+        # This might be a path already inside the container
+        return normalized_path
 
     def _run_bulk_operation(self, sources: List[Dict], dry_run: bool):
         """Run bulk operation on multiple sources from source management."""

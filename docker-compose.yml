@@ -11,6 +11,7 @@ services:
     ports:
       - "8502:8502"  # Secure Streamlit App
       - "8501:8501"  # Memory Control Center
+      - "8503:8503"  # Welcome Setup
     volumes:
       # Persistent data volumes
       - sam_data:/app/data
@@ -23,6 +24,11 @@ services:
       - sam_security:/app/security
       # Configuration (optional override)
       - ./docker/sam_docker_config.json:/app/config/sam_config.json:ro
+      # Host file system access for bulk ingestion (Windows)
+      - C:\Users:/app/host_users:ro
+      # Alternative: Mount specific directories as needed
+      # - C:\Users\vin\Downloads:/app/host_downloads:ro
+      # - C:\Users\vin\Documents:/app/host_documents:ro
     environment:
       - SAM_DOCKER=true
       - SAM_ENVIRONMENT=production
