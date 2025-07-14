@@ -1,0 +1,161 @@
+# SAM Master Verifier Tool Configuration
+# Configuration for the Master-RM based verification system to detect superficial responses
+
+# Model configuration
+model:
+  name: "sarosavo/Master-RM"
+  cache_dir: "./model_cache/master_rm"
+  device: "auto"  # auto, cpu, cuda
+  max_length: 2048
+  temperature: 0.1
+  trust_remote_code: false
+  torch_dtype: "auto"
+  
+# Prompt configuration based on Table 7 from the Master-RM paper
+prompt_template: |
+  system:
+  You are a helpful assistant.
+  user:
+  Given a problem, determine whether the final answer in the provided solution process matches the reference answer.
+  
+  **Question:**
+  {question}
+  **Solution Process (Final Step Only):**
+  {response}
+  **Reference Answer:**
+  {reference}
+  **Output:**
+
+# Verification settings
+verification:
+  # Confidence threshold for considering a response substantive
+  confidence_threshold: 0.8
+  
+  # Known master key patterns that indicate superficial responses
+  master_key_patterns:
+    - "thought process:"
+    - "let's solve this"
+    - "solution:"
+    - "step by step"
+    - "let me think"
+    - "i need to"
+    - "first, i will"
+    - "to solve this problem"
+    - "the answer is"
+    - "in conclusion"
+  
+  # Minimum response length to consider for verification
+  min_response_length: 10
+  
+  # Maximum response length to process (for performance)
+  max_response_length: 4096
+  
+  # Timeout for model inference (seconds)
+  timeout_seconds: 30
+  
+  # Enable caching of verification results
+  enable_caching: true
+  cache_size: 1000
+  cache_ttl: 3600  # 1 hour
+
+# Integration settings
+integration:
+  # Enable integration with meta-reasoning pipeline
+  enable_in_meta_reasoning: true
+  
+  # Enable integration with chunking pipeline
+  enable_in_chunking: true
+  
+  # Penalty multiplier for superficial responses in confidence scoring
+  penalty_multiplier: 0.2
+  
+  # Boost multiplier for substantive responses
+  boost_multiplier: 1.1
+  
+  # Enable automatic fallback if model fails to load
+  enable_fallback: true
+  
+  # Fallback method when model is unavailable
+  # Options: "pattern_matching", "length_heuristic", "always_pass"
+  fallback_method: "pattern_matching"
+
+# Performance optimization
+performance:
+  # Enable batch processing for multiple verifications
+  enable_batch_processing: false
+  batch_size: 8
+  
+  # Enable model quantization for faster inference
+  enable_quantization: false
+  quantization_bits: 8
+  
+  # Enable GPU acceleration if available
+  prefer_gpu: true
+  
+  # Memory management
+  max_memory_usage_gb: 4.0
+  clear_cache_after_requests: 100
+
+# Security settings
+security:
+  # Validate input lengths to prevent attacks
+  validate_input_lengths: true
+  
+  # Maximum combined input length (question + response + reference)
+  max_combined_input_length: 8192
+  
+  # Sanitize inputs to remove potentially harmful content
+  sanitize_inputs: true
+  
+  # Rate limiting (requests per minute)
+  rate_limit_per_minute: 60
+
+# Logging and monitoring
+logging:
+  # Log level for master verifier operations
+  level: "INFO"
+  
+  # Enable detailed verification logs
+  log_verification_details: false
+  
+  # Enable performance timing logs
+  log_performance: true
+  
+  # Enable model loading logs
+  log_model_operations: true
+  
+  # Log verification decisions for analysis
+  log_decisions: true
+  
+  # Save verification statistics
+  save_statistics: true
+  statistics_file: "logs/master_verifier_stats.json"
+
+# Experimental features
+experimental:
+  # Enable adaptive threshold adjustment based on performance
+  enable_adaptive_threshold: false
+  
+  # Enable ensemble verification with multiple models
+  enable_ensemble: false
+  
+  # Enable fine-tuning on SAM-specific data
+  enable_fine_tuning: false
+  
+  # Enable explanation generation for verification decisions
+  enable_explanations: false
+
+# Backward compatibility and fallback
+compatibility:
+  # Enable graceful degradation if model fails
+  graceful_degradation: true
+  
+  # Continue processing even if verification fails
+  continue_on_failure: true
+  
+  # Default verification result when system fails
+  # Options: "pass", "fail", "neutral"
+  default_on_failure: "neutral"
+  
+  # Enable legacy pattern matching as backup
+  enable_legacy_patterns: true

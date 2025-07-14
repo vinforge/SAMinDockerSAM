@@ -35,6 +35,15 @@ except ImportError:
     DIMENSION_PROBING_AVAILABLE = False
     logging.warning("Dimension probing not available for meta-reasoning")
 
+# Import Master Verifier Skill for superficiality detection
+try:
+    from sam.orchestration.skills.master_verifier_skill import MasterVerifierSkill
+    from sam.orchestration.uif import SAM_UIF
+    MASTER_VERIFIER_AVAILABLE = True
+except ImportError:
+    MASTER_VERIFIER_AVAILABLE = False
+    logging.warning("Master Verifier Skill not available for meta-reasoning")
+
 logger = logging.getLogger(__name__)
 
 class ReflectionType(Enum):
@@ -142,11 +151,18 @@ class ReflectiveMetaReasoningEngine:
             logger.info("Dimension probing integrated for meta-reasoning")
         else:
             self.dimension_prober = None
-        
+
+        # Initialize Master Verifier for superficiality detection
+        if MASTER_VERIFIER_AVAILABLE:
+            self.master_verifier = MasterVerifierSkill()
+            logger.info("Master Verifier Skill integrated for superficiality detection")
+        else:
+            self.master_verifier = None
+
         # Initialize reflection components
         self._init_reflection_patterns()
         self._init_critique_templates()
-        
+
         logger.info(f"Reflective Meta-Reasoning Engine initialized with {critique_level.value} critique level")
     
     def _init_reflection_patterns(self):
@@ -240,7 +256,7 @@ class ReflectiveMetaReasoningEngine:
             
             # Stage 7: Synthesize Final Response
             final_response = self._synthesize_final_response(
-                query, initial_response, alternatives, critiques, conflicts, trade_offs
+                query, initial_response, alternatives, critiques, conflicts, trade_offs, response_analysis
             )
             
             # Stage 8: Build Reasoning Chain
@@ -285,7 +301,7 @@ class ReflectiveMetaReasoningEngine:
             return self._create_error_result(session_id, query, initial_response, str(e))
     
     def _analyze_initial_response(self, response: str, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Analyze the initial response for assumptions, confidence indicators, etc."""
+        """Analyze the initial response for assumptions, confidence indicators, and superficiality."""
         analysis = {
             "response_length": len(response),
             "assumptions": self._detect_assumptions(response),
@@ -293,7 +309,12 @@ class ReflectiveMetaReasoningEngine:
             "confidence_indicators": self._detect_confidence_indicators(response),
             "dimension_scores": {},
             "evidence_sources": [],
-            "reasoning_gaps": []
+            "reasoning_gaps": [],
+            # New superficiality analysis
+            "superficiality_check": {},
+            "is_substantive": True,  # Default to substantive
+            "verification_confidence": 1.0,  # Default high confidence
+            "verification_method": "none"
         }
         
         # Add dimension analysis if available
@@ -311,13 +332,89 @@ class ReflectiveMetaReasoningEngine:
                     analysis["dimension_confidence"] = {}
             except Exception as e:
                 logger.warning(f"Dimension analysis failed: {e}")
-        
+
+        # Add superficiality check using Master Verifier
+        if self.master_verifier:
+            try:
+                superficiality_result = self._check_response_superficiality(response, context)
+                analysis["superficiality_check"] = superficiality_result
+                analysis["is_substantive"] = superficiality_result.get("is_substantive", True)
+                analysis["verification_confidence"] = superficiality_result.get("verification_confidence", 1.0)
+                analysis["verification_method"] = superficiality_result.get("verification_method", "master_verifier")
+
+                # Log superficiality detection
+                if not analysis["is_substantive"]:
+                    logger.warning(f"Superficial response detected: {superficiality_result.get('verification_explanation', 'Unknown reason')}")
+                else:
+                    logger.debug(f"Response verified as substantive: {superficiality_result.get('verification_explanation', 'No issues detected')}")
+
+            except Exception as e:
+                logger.warning(f"Superficiality check failed: {e}")
+                analysis["superficiality_check"] = {"error": str(e)}
+
         # Extract evidence sources from context
         if context:
             analysis["evidence_sources"] = context.get("memory_results", [])
             analysis["tool_outputs"] = context.get("tool_outputs", [])
-        
+
         return analysis
+
+    def _check_response_superficiality(self, response: str, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Check if the response is superficial using the Master Verifier Skill.
+
+        Args:
+            response: The response to check for superficiality
+            context: Additional context including query information
+
+        Returns:
+            Dictionary with superficiality analysis results
+        """
+        try:
+            # Extract query from context if available
+            query = ""
+            if context:
+                query = context.get("original_query", context.get("query", ""))
+
+            # Create UIF for Master Verifier
+            uif = SAM_UIF(
+                input_query=query,
+                intermediate_data={
+                    'verification_question': query,
+                    'verification_response': response,
+                    'verification_reference': '',  # No reference available in meta-reasoning
+                    'verification_context': context or {}
+                }
+            )
+
+            # Execute Master Verifier
+            result_uif = self.master_verifier.execute(uif)
+
+            # Extract results
+            verification_result = {
+                'is_substantive': result_uif.intermediate_data.get('is_substantive', True),
+                'verification_confidence': result_uif.intermediate_data.get('verification_confidence', 1.0),
+                'verification_explanation': result_uif.intermediate_data.get('verification_explanation', 'No explanation available'),
+                'verification_method': result_uif.intermediate_data.get('verification_method', 'master_verifier'),
+                'master_verifier_executed': True
+            }
+
+            # Add any warnings from the verification
+            if result_uif.warnings:
+                verification_result['warnings'] = result_uif.warnings
+
+            return verification_result
+
+        except Exception as e:
+            logger.error(f"Error in superficiality check: {e}")
+            return {
+                'is_substantive': True,  # Default to substantive on error
+                'verification_confidence': 0.5,  # Low confidence due to error
+                'verification_explanation': f'Verification failed: {str(e)}',
+                'verification_method': 'error_fallback',
+                'master_verifier_executed': False,
+                'error': str(e)
+            }
 
     def _detect_assumptions(self, response: str) -> List[str]:
         """Detect assumptions in the response text."""
@@ -824,14 +921,25 @@ class ReflectiveMetaReasoningEngine:
                                  alternatives: List[AlternativePerspective],
                                  critiques: List[AdversarialCritique],
                                  conflicts: List[DimensionConflict],
-                                 trade_offs: Dict[str, Any]) -> str:
-        """Synthesize final response incorporating all reflective analysis."""
+                                 trade_offs: Dict[str, Any],
+                                 response_analysis: Dict[str, Any]) -> str:
+        """Synthesize final response incorporating all reflective analysis including superficiality check."""
 
         # Start with initial response
         final_parts = [initial_response]
 
         # Add meta-cognitive reflection
         final_parts.append("\n\n**🧠 Meta-Cognitive Reflection:**")
+
+        # Add superficiality warning if detected
+        if not response_analysis.get("is_substantive", True):
+            superficiality_check = response_analysis.get("superficiality_check", {})
+            verification_explanation = superficiality_check.get("verification_explanation", "Response may be superficial")
+            verification_method = response_analysis.get("verification_method", "unknown")
+
+            final_parts.append(f"🚨 **Superficiality Alert:** {verification_explanation}")
+            final_parts.append(f"🔍 **Detection Method:** {verification_method}")
+            final_parts.append("💡 **Recommendation:** Consider providing more detailed, substantive analysis")
 
         # Add critique summary if significant issues found
         significant_critiques = [c for c in critiques if c.severity > 0.6]
@@ -849,8 +957,19 @@ class ReflectiveMetaReasoningEngine:
             for alt in alternatives[:2]:  # Limit to top 2 alternatives
                 final_parts.append(f"• **{alt.perspective_name}:** {alt.reasoning}")
 
-        # Add confidence note
-        final_parts.append(f"\n📊 **Confidence Level:** Moderate (reflective analysis applied)")
+        # Add confidence note with superficiality consideration
+        confidence_level = "Moderate"
+        confidence_factors = ["reflective analysis applied"]
+
+        if not response_analysis.get("is_substantive", True):
+            confidence_level = "Low"
+            confidence_factors.append("superficial response detected")
+
+        verification_confidence = response_analysis.get("verification_confidence", 1.0)
+        if verification_confidence < 0.7:
+            confidence_factors.append(f"verification confidence: {verification_confidence:.2f}")
+
+        final_parts.append(f"\n📊 **Confidence Level:** {confidence_level} ({', '.join(confidence_factors)})")
 
         return "\n".join(final_parts)
 
@@ -864,16 +983,28 @@ class ReflectiveMetaReasoningEngine:
 
         chain = []
 
-        # Step 1: Initial Analysis
+        # Step 1: Initial Analysis (including superficiality check)
+        initial_analysis_details = {
+            "assumptions_found": len(response_analysis.get("assumptions", [])),
+            "uncertainty_indicators": len(response_analysis.get("uncertainty_indicators", [])),
+            "confidence_indicators": len(response_analysis.get("confidence_indicators", []))
+        }
+
+        # Add superficiality analysis if available
+        if response_analysis.get("superficiality_check"):
+            superficiality_check = response_analysis["superficiality_check"]
+            initial_analysis_details.update({
+                "superficiality_verified": superficiality_check.get("master_verifier_executed", False),
+                "is_substantive": response_analysis.get("is_substantive", True),
+                "verification_method": response_analysis.get("verification_method", "none"),
+                "verification_confidence": response_analysis.get("verification_confidence", 1.0)
+            })
+
         chain.append({
             "step": 1,
             "type": "initial_analysis",
-            "description": "Analyzed initial response for assumptions and confidence indicators",
-            "details": {
-                "assumptions_found": len(response_analysis.get("assumptions", [])),
-                "uncertainty_indicators": len(response_analysis.get("uncertainty_indicators", [])),
-                "confidence_indicators": len(response_analysis.get("confidence_indicators", []))
-            }
+            "description": "Analyzed initial response for assumptions, confidence indicators, and superficiality",
+            "details": initial_analysis_details
         })
 
         # Step 2: Alternative Perspectives

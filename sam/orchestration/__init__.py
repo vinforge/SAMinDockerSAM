@@ -36,6 +36,7 @@ from .skills.financial_data_tool import FinancialDataTool
 from .skills.news_api_tool import NewsApiTool
 from .skills.table_to_code_expert import TableToCodeExpert
 from .skills.memory_tool import MemoryTool
+from .skills.master_verifier_skill import MasterVerifierSkill
 from .skills.autonomous.factual_correction import AutonomousFactualCorrectionSkill
 from .validator import PlanValidationEngine, PlanValidationReport, ValidationResult
 from .coordinator import CoordinatorEngine, ExecutionReport, ExecutionResult
@@ -79,6 +80,7 @@ __all__ = [
 
     # Reasoning skills
     'ImplicitKnowledgeSkill',
+    'MasterVerifierSkill',
 
     # Autonomous skills
     'AutonomousFactualCorrectionSkill',

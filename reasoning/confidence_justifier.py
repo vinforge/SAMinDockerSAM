@@ -31,6 +31,7 @@ class EvidenceType(Enum):
     EXPERT_VALIDATION = "expert_validation"
     PEER_REVIEW = "peer_review"
     EMPIRICAL_SUPPORT = "empirical_support"
+    RESPONSE_SUBSTANTIVENESS = "response_substantiveness"  # New: Master Verifier integration
 
 @dataclass
 class ConfidenceEvidence:
@@ -87,34 +88,38 @@ class AdvancedConfidenceJustifier:
         """Initialize evidence weights for different profiles."""
         return {
             "general": {
-                EvidenceType.SOURCE_CREDIBILITY: 0.25,
-                EvidenceType.EVIDENCE_QUANTITY: 0.15,
-                EvidenceType.EVIDENCE_QUALITY: 0.20,
-                EvidenceType.REASONING_COMPLETENESS: 0.20,
-                EvidenceType.DIMENSION_CONSISTENCY: 0.15,
+                EvidenceType.SOURCE_CREDIBILITY: 0.20,
+                EvidenceType.EVIDENCE_QUANTITY: 0.12,
+                EvidenceType.EVIDENCE_QUALITY: 0.18,
+                EvidenceType.REASONING_COMPLETENESS: 0.18,
+                EvidenceType.DIMENSION_CONSISTENCY: 0.12,
+                EvidenceType.RESPONSE_SUBSTANTIVENESS: 0.15,  # High weight for superficiality check
                 EvidenceType.EXPERT_VALIDATION: 0.05
             },
             "researcher": {
-                EvidenceType.SOURCE_CREDIBILITY: 0.20,
-                EvidenceType.EVIDENCE_QUALITY: 0.25,
-                EvidenceType.REASONING_COMPLETENESS: 0.20,
+                EvidenceType.SOURCE_CREDIBILITY: 0.18,
+                EvidenceType.EVIDENCE_QUALITY: 0.22,
+                EvidenceType.REASONING_COMPLETENESS: 0.18,
+                EvidenceType.RESPONSE_SUBSTANTIVENESS: 0.12,  # Moderate weight for researchers
                 EvidenceType.PEER_REVIEW: 0.15,
-                EvidenceType.EMPIRICAL_SUPPORT: 0.15,
-                EvidenceType.DIMENSION_CONSISTENCY: 0.05
+                EvidenceType.EMPIRICAL_SUPPORT: 0.12,
+                EvidenceType.DIMENSION_CONSISTENCY: 0.03
             },
             "business": {
-                EvidenceType.SOURCE_CREDIBILITY: 0.30,
-                EvidenceType.EVIDENCE_QUANTITY: 0.20,
-                EvidenceType.EXPERT_VALIDATION: 0.20,
-                EvidenceType.REASONING_COMPLETENESS: 0.15,
-                EvidenceType.EVIDENCE_QUALITY: 0.10,
-                EvidenceType.DIMENSION_CONSISTENCY: 0.05
+                EvidenceType.SOURCE_CREDIBILITY: 0.25,
+                EvidenceType.EVIDENCE_QUANTITY: 0.18,
+                EvidenceType.EXPERT_VALIDATION: 0.18,
+                EvidenceType.REASONING_COMPLETENESS: 0.13,
+                EvidenceType.RESPONSE_SUBSTANTIVENESS: 0.18,  # High weight for business contexts
+                EvidenceType.EVIDENCE_QUALITY: 0.05,
+                EvidenceType.DIMENSION_CONSISTENCY: 0.03
             },
             "legal": {
-                EvidenceType.SOURCE_CREDIBILITY: 0.35,
-                EvidenceType.EXPERT_VALIDATION: 0.25,
-                EvidenceType.EVIDENCE_QUALITY: 0.20,
-                EvidenceType.REASONING_COMPLETENESS: 0.15,
+                EvidenceType.SOURCE_CREDIBILITY: 0.30,
+                EvidenceType.EXPERT_VALIDATION: 0.22,
+                EvidenceType.EVIDENCE_QUALITY: 0.18,
+                EvidenceType.REASONING_COMPLETENESS: 0.13,
+                EvidenceType.RESPONSE_SUBSTANTIVENESS: 0.12,  # Moderate weight for legal contexts
                 EvidenceType.PEER_REVIEW: 0.05
             }
         }
@@ -200,11 +205,14 @@ class AdvancedConfidenceJustifier:
         
         # Dimension consistency
         evidence_items.append(self._assess_dimension_consistency(response_analysis))
-        
+
+        # Response substantiveness (Master Verifier integration)
+        evidence_items.append(self._assess_response_substantiveness(response_analysis))
+
         # Context-specific evidence
         if context:
             evidence_items.extend(self._assess_context_evidence(context))
-        
+
         return evidence_items
     
     def _assess_source_credibility(self, response_analysis: Dict[str, Any]) -> ConfidenceEvidence:
@@ -397,7 +405,7 @@ class AdvancedConfidenceJustifier:
         )
 
     def _assess_context_evidence(self, context: Dict[str, Any]) -> List[ConfidenceEvidence]:
-        """Assess context-specific evidence."""
+        """Assess context-specific evidence including superficiality context."""
         evidence_items = []
 
         # Check for critiques
@@ -414,7 +422,98 @@ class AdvancedConfidenceJustifier:
                 supporting_details=[f"Average critique severity: {critique_penalty:.2f}"]
             ))
 
+        # Check for superficiality information in context (additional validation)
+        context_substantiveness = context.get("is_substantive")
+        if context_substantiveness is not None:
+            # Context provides additional substantiveness information
+            context_verification_confidence = context.get("verification_confidence", 0.5)
+
+            if context_substantiveness:
+                context_score = 0.7 + (context_verification_confidence * 0.3)
+                description = "Context confirms response substantiveness"
+            else:
+                context_score = max(0.1, 0.4 - (context_verification_confidence * 0.3))
+                description = "Context indicates superficial response"
+
+            evidence_items.append(ConfidenceEvidence(
+                evidence_type=EvidenceType.RESPONSE_SUBSTANTIVENESS,
+                score=context_score,
+                weight=self._get_evidence_weight(EvidenceType.RESPONSE_SUBSTANTIVENESS) * 0.5,  # Lower weight for context
+                description=f"Context-based substantiveness assessment: {description}",
+                supporting_details=[
+                    f"Context substantiveness: {context_substantiveness}",
+                    f"Context verification confidence: {context_verification_confidence:.2f}"
+                ]
+            ))
+
         return evidence_items
+
+    def _assess_response_substantiveness(self, response_analysis: Dict[str, Any]) -> ConfidenceEvidence:
+        """
+        Assess response substantiveness using Master Verifier results.
+
+        This method integrates with the Master Verifier Skill to detect superficial
+        responses and apply appropriate confidence penalties.
+
+        Args:
+            response_analysis: Analysis containing Master Verifier results
+
+        Returns:
+            ConfidenceEvidence for response substantiveness
+        """
+        # Extract Master Verifier results from response analysis
+        is_substantive = response_analysis.get("is_substantive", True)
+        verification_confidence = response_analysis.get("verification_confidence", 1.0)
+        verification_method = response_analysis.get("verification_method", "none")
+        superficiality_check = response_analysis.get("superficiality_check", {})
+
+        # Calculate substantiveness score
+        if verification_method == "none":
+            # No verification performed - use neutral score
+            substantiveness_score = 0.7
+            description = "No superficiality verification performed"
+            details = ["Master Verifier not available or not executed"]
+
+        elif not is_substantive:
+            # Superficial response detected - apply penalty
+            base_penalty = 0.6  # Base penalty for superficial responses
+            confidence_factor = verification_confidence  # Higher confidence in detection = higher penalty
+
+            # Calculate penalty based on verification confidence
+            penalty_multiplier = 0.2 + (confidence_factor * 0.6)  # 0.2 to 0.8 range
+            substantiveness_score = max(0.1, base_penalty * (1 - penalty_multiplier))
+
+            verification_explanation = superficiality_check.get("verification_explanation", "Superficial response detected")
+            description = f"Superficial response detected: {verification_explanation}"
+            details = [
+                f"Verification method: {verification_method}",
+                f"Verification confidence: {verification_confidence:.2f}",
+                f"Applied penalty multiplier: {penalty_multiplier:.2f}",
+                f"Base penalty: {base_penalty:.2f}"
+            ]
+
+        else:
+            # Substantive response - reward based on verification confidence
+            base_score = 0.8
+            confidence_boost = verification_confidence * 0.2  # Up to 0.2 boost
+            substantiveness_score = min(1.0, base_score + confidence_boost)
+
+            verification_explanation = superficiality_check.get("verification_explanation", "Response verified as substantive")
+            description = f"Substantive response verified: {verification_explanation}"
+            details = [
+                f"Verification method: {verification_method}",
+                f"Verification confidence: {verification_confidence:.2f}",
+                f"Applied confidence boost: {confidence_boost:.2f}",
+                f"Base score: {base_score:.2f}"
+            ]
+
+        return ConfidenceEvidence(
+            evidence_type=EvidenceType.RESPONSE_SUBSTANTIVENESS,
+            score=substantiveness_score,
+            weight=self._get_evidence_weight(EvidenceType.RESPONSE_SUBSTANTIVENESS),
+            description=description,
+            supporting_details=details
+        )
 
     def _get_evidence_weight(self, evidence_type: EvidenceType) -> float:
         """Get weight for evidence type based on profile."""
@@ -475,28 +574,55 @@ class AdvancedConfidenceJustifier:
         return [desc for _, desc in weighted_contributions[:3]]
 
     def _identify_limiting_factors(self, evidence_items: List[ConfidenceEvidence]) -> List[str]:
-        """Identify factors limiting confidence."""
+        """Identify factors limiting confidence, with special attention to superficiality."""
         limiting_factors = []
 
         for evidence in evidence_items:
             if evidence.score < 0.5:
-                limiting_factors.append(f"Low {evidence.evidence_type.value}: {evidence.description}")
+                # Special handling for superficiality issues
+                if evidence.evidence_type == EvidenceType.RESPONSE_SUBSTANTIVENESS:
+                    if evidence.score < 0.3:
+                        limiting_factors.append(f"🚨 Critical superficiality issue: {evidence.description}")
+                    else:
+                        limiting_factors.append(f"⚠️ Superficiality concern: {evidence.description}")
+                else:
+                    limiting_factors.append(f"Low {evidence.evidence_type.value}: {evidence.description}")
 
         return limiting_factors
 
     def _generate_reliability_assessment(self, confidence_score: float,
                                        evidence_items: List[ConfidenceEvidence]) -> str:
-        """Generate overall reliability assessment."""
+        """Generate overall reliability assessment with superficiality considerations."""
+
+        # Check for superficiality issues
+        substantiveness_evidence = None
+        for evidence in evidence_items:
+            if evidence.evidence_type == EvidenceType.RESPONSE_SUBSTANTIVENESS:
+                substantiveness_evidence = evidence
+                break
+
+        # Base reliability assessment
         if confidence_score >= 0.8:
-            return "High reliability - strong evidence across multiple dimensions with minimal limitations"
+            base_assessment = "High reliability - strong evidence across multiple dimensions with minimal limitations"
         elif confidence_score >= 0.6:
-            return "Good reliability - adequate evidence with some minor limitations or uncertainties"
+            base_assessment = "Good reliability - adequate evidence with some minor limitations or uncertainties"
         elif confidence_score >= 0.4:
-            return "Moderate reliability - mixed evidence quality with notable limitations"
+            base_assessment = "Moderate reliability - mixed evidence quality with notable limitations"
         elif confidence_score >= 0.2:
-            return "Low reliability - limited evidence with significant concerns or gaps"
+            base_assessment = "Low reliability - limited evidence with significant concerns or gaps"
         else:
-            return "Very low reliability - insufficient or poor-quality evidence with major limitations"
+            base_assessment = "Very low reliability - insufficient or poor-quality evidence with major limitations"
+
+        # Add superficiality-specific notes
+        if substantiveness_evidence:
+            if substantiveness_evidence.score < 0.3:
+                base_assessment += " ⚠️ CRITICAL: Response shows significant superficiality issues"
+            elif substantiveness_evidence.score < 0.5:
+                base_assessment += " ⚠️ Note: Response may contain superficial elements"
+            elif substantiveness_evidence.score > 0.8:
+                base_assessment += " ✅ Response verified as substantive and detailed"
+
+        return base_assessment
 
     def _create_error_justification(self, error: str) -> ConfidenceJustification:
         """Create error justification when calculation fails."""
