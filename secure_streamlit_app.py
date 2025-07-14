@@ -10022,36 +10022,190 @@ def process_secure_document(uploaded_file) -> dict:
 
         if uploaded_file.type == "text/plain":
             text_content = content.decode('utf-8')
-        elif uploaded_file.type == "application/pdf":
-            # Extract text from PDF
+        elif uploaded_file.type == "application/pdf" or uploaded_file.name.endswith('.pdf'):
+            # Enhanced PDF text extraction with multiple fallback methods
+            text_content = ""
+            extraction_method = "none"
+
             try:
-                import PyPDF2
                 import io
-
                 logger.info(f"Extracting text from PDF: {uploaded_file.name}")
-                pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
-                text_content = ""
 
-                for page_num, page in enumerate(pdf_reader.pages):
-                    page_text = page.extract_text()
-                    text_content += f"\n--- Page {page_num + 1} ---\n{page_text}"
-                    logger.debug(f"Page {page_num + 1}: extracted {len(page_text)} characters")
+                # Method 1: Try PyMuPDF (fitz) - Best for complex PDFs
+                try:
+                    import fitz  # PyMuPDF
 
+                    pdf_document = fitz.open(stream=content, filetype="pdf")
+                    text_content = ""
+
+                    for page_num in range(pdf_document.page_count):
+                        page = pdf_document[page_num]
+                        page_text = page.get_text()
+
+                        if page_text.strip():
+                            text_content += f"\n--- Page {page_num + 1} ---\n{page_text}"
+                            logger.debug(f"Page {page_num + 1}: extracted {len(page_text)} characters")
+
+                    pdf_document.close()
+                    extraction_method = "PyMuPDF"
+
+                    if text_content.strip():
+                        logger.info(f"✅ Successfully extracted text using PyMuPDF: {uploaded_file.name}")
+                    else:
+                        raise Exception("No text extracted with PyMuPDF")
+
+                except ImportError:
+                    logger.debug("PyMuPDF not available, trying PyPDF2...")
+                    raise Exception("PyMuPDF not available")
+                except Exception as e:
+                    logger.debug(f"PyMuPDF extraction failed: {e}, trying PyPDF2...")
+                    raise Exception(f"PyMuPDF failed: {e}")
+
+            except Exception as pymupdf_error:
+                # Method 2: Fallback to PyPDF2 - Standard library approach
+                try:
+                    import PyPDF2
+
+                    logger.debug("Trying PyPDF2 extraction...")
+                    pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+                    text_content = ""
+
+                    for page_num, page in enumerate(pdf_reader.pages):
+                        try:
+                            page_text = page.extract_text()
+                            if page_text.strip():
+                                text_content += f"\n--- Page {page_num + 1} ---\n{page_text}"
+                                logger.debug(f"Page {page_num + 1}: extracted {len(page_text)} characters")
+                        except Exception as page_error:
+                            logger.warning(f"Failed to extract page {page_num + 1}: {page_error}")
+                            text_content += f"\n--- Page {page_num + 1} ---\n[Page extraction failed: {page_error}]\n"
+
+                    extraction_method = "PyPDF2"
+
+                    if text_content.strip():
+                        logger.info(f"✅ Successfully extracted text using PyPDF2: {uploaded_file.name}")
+                    else:
+                        raise Exception("No text extracted with PyPDF2")
+
+                except ImportError:
+                    logger.error("PyPDF2 library not available. Install with: pip install PyPDF2")
+                    text_content = f"PDF Document: {uploaded_file.name} (PyPDF2 library required - {len(content)} bytes)"
+                    extraction_method = "none"
+                except Exception as pypdf2_error:
+                    logger.debug(f"PyPDF2 extraction failed: {pypdf2_error}, trying pdfplumber...")
+
+                    # Method 3: Try pdfplumber - Good for tables and complex layouts
+                    try:
+                        import pdfplumber
+
+                        logger.debug("Trying pdfplumber extraction...")
+                        with pdfplumber.open(io.BytesIO(content)) as pdf:
+                            text_content = ""
+
+                            for page_num, page in enumerate(pdf.pages):
+                                try:
+                                    # Extract text
+                                    page_text = page.extract_text()
+                                    if page_text and page_text.strip():
+                                        text_content += f"\n--- Page {page_num + 1} ---\n{page_text}"
+
+                                    # Extract tables
+                                    tables = page.extract_tables()
+                                    if tables:
+                                        text_content += f"\n--- Page {page_num + 1} Tables ---\n"
+                                        for table_num, table in enumerate(tables, 1):
+                                            text_content += f"\nTable {table_num}:\n"
+                                            for row in table:
+                                                if row:
+                                                    row_text = " | ".join([str(cell) if cell else "" for cell in row])
+                                                    text_content += f"{row_text}\n"
+
+                                    logger.debug(f"Page {page_num + 1}: extracted {len(page_text or '')} characters")
+
+                                except Exception as page_error:
+                                    logger.warning(f"Failed to extract page {page_num + 1} with pdfplumber: {page_error}")
+                                    text_content += f"\n--- Page {page_num + 1} ---\n[Page extraction failed: {page_error}]\n"
+
+                        extraction_method = "pdfplumber"
+
+                        if text_content.strip():
+                            logger.info(f"✅ Successfully extracted text using pdfplumber: {uploaded_file.name}")
+                        else:
+                            raise Exception("No text extracted with pdfplumber")
+
+                    except ImportError:
+                        logger.warning("pdfplumber library not available. Install with: pip install pdfplumber")
+                        text_content = f"PDF Document: {uploaded_file.name} (Advanced PDF libraries not available - {len(content)} bytes)\n\nRecommendation: Install PyMuPDF or pdfplumber for better PDF text extraction:\npip install PyMuPDF pdfplumber"
+                        extraction_method = "none"
+                    except Exception as pdfplumber_error:
+                        logger.error(f"All PDF extraction methods failed. PyMuPDF: {pymupdf_error}, PyPDF2: {pypdf2_error}, pdfplumber: {pdfplumber_error}")
+                        text_content = f"PDF Document: {uploaded_file.name} (Text extraction failed with all methods - {len(content)} bytes)\n\nExtraction attempts:\n- PyMuPDF: {pymupdf_error}\n- PyPDF2: {pypdf2_error}\n- pdfplumber: {pdfplumber_error}"
+                        extraction_method = "failed"
+
+                # Final validation and logging
                 logger.info(f"Total extracted text length: {len(text_content)} characters")
                 logger.debug(f"First 200 characters: {text_content[:200]}")
 
                 if not text_content.strip():
                     logger.warning(f"No text extracted from PDF: {uploaded_file.name}")
-                    text_content = f"PDF Document: {uploaded_file.name} (Could not extract text - {len(content)} bytes)"
+                    text_content = f"PDF Document: {uploaded_file.name} (Could not extract text - {len(content)} bytes)\n\nThis PDF may contain:\n- Scanned images without OCR\n- Protected/encrypted content\n- Complex formatting that requires specialized tools"
                 else:
-                    logger.info(f"✅ Successfully extracted text from PDF: {uploaded_file.name}")
+                    logger.info(f"✅ Successfully extracted text from PDF using {extraction_method}: {uploaded_file.name}")
 
             except Exception as e:
                 logger.error(f"PDF extraction failed for {uploaded_file.name}: {e}")
-                text_content = f"PDF Document: {uploaded_file.name} (Text extraction failed - {len(content)} bytes)"
+                text_content = f"PDF Document: {uploaded_file.name} (Text extraction failed: {str(e)} - {len(content)} bytes)"
+
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or uploaded_file.name.endswith('.docx'):
+            # Extract text from DOCX
+            try:
+                from docx import Document
+                import io
+
+                logger.info(f"Extracting text from DOCX: {uploaded_file.name}")
+                doc = Document(io.BytesIO(content))
+                text_content = ""
+
+                # Extract paragraphs
+                for para_num, paragraph in enumerate(doc.paragraphs, 1):
+                    if paragraph.text.strip():
+                        text_content += f"{paragraph.text}\n"
+
+                # Extract tables
+                for table_num, table in enumerate(doc.tables, 1):
+                    text_content += f"\n--- Table {table_num} ---\n"
+                    for row in table.rows:
+                        row_text = " | ".join([cell.text.strip() for cell in row.cells])
+                        if row_text.strip():
+                            text_content += f"{row_text}\n"
+
+                logger.info(f"Total extracted text length: {len(text_content)} characters")
+                logger.debug(f"First 200 characters: {text_content[:200]}")
+
+                if not text_content.strip():
+                    logger.warning(f"No text extracted from DOCX: {uploaded_file.name}")
+                    text_content = f"DOCX Document: {uploaded_file.name} (Could not extract text - {len(content)} bytes)"
+                else:
+                    logger.info(f"✅ Successfully extracted text from DOCX: {uploaded_file.name}")
+
+            except ImportError:
+                logger.error(f"python-docx library not available. Install with: pip install python-docx")
+                text_content = f"DOCX Document: {uploaded_file.name} (python-docx library required - {len(content)} bytes)"
+            except Exception as e:
+                logger.error(f"DOCX extraction failed for {uploaded_file.name}: {e}")
+                text_content = f"DOCX Document: {uploaded_file.name} (Text extraction failed: {str(e)} - {len(content)} bytes)"
+
         else:
-            # For other file types, you'd use appropriate parsers
-            text_content = f"Document: {uploaded_file.name} (Binary content - {len(content)} bytes)"
+            # For other file types, try to decode as text or provide informative message
+            try:
+                # Try to decode as UTF-8 text
+                text_content = content.decode('utf-8')
+                logger.info(f"✅ Successfully decoded {uploaded_file.name} as UTF-8 text")
+            except UnicodeDecodeError:
+                # If not text, provide informative message about unsupported format
+                file_extension = uploaded_file.name.split('.')[-1].lower() if '.' in uploaded_file.name else 'unknown'
+                text_content = f"Document: {uploaded_file.name} (Unsupported format: {file_extension} - {len(content)} bytes)\n\nSupported formats: TXT, PDF, DOCX\nTo process this file, please convert it to one of the supported formats."
+                logger.warning(f"Unsupported file format for {uploaded_file.name}: {uploaded_file.type}")
         
         # PHASE 1: Save file temporarily for multimodal processing
         import tempfile

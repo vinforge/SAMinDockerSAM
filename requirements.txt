@@ -15,6 +15,8 @@ numpy>=1.24.0,<2.0.0
 
 # Document Processing
 PyPDF2>=3.0.0,<4.0.0
+PyMuPDF>=1.23.0,<2.0.0  # Advanced PDF processing with better text extraction
+pdfplumber>=0.9.0,<1.0.0  # PDF table extraction and complex layout handling
 python-docx>=0.8.11,<1.0.0
 beautifulsoup4>=4.12.0,<5.0.0
 
@@ -46,6 +48,11 @@ transformers>=4.30.0,<5.0.0
 torch>=2.0.0,<3.0.0
 scikit-learn>=1.3.0,<2.0.0
 
+# Hybrid Linear Attention Support (SAM 2.0)
+flash-linear-attention>=0.1.0
+triton>=2.0.0,<3.0.0; sys_platform == "linux"  # GPU optimizations (Linux only)
+accelerate>=0.20.0,<1.0.0  # For efficient model loading and training
+
 # Dream Canvas Visualization
 umap-learn>=0.5.4,<1.0.0
 plotly>=5.17.0,<6.0.0
@@ -63,6 +70,13 @@ sqlalchemy>=2.0.0,<3.0.0
 # Development Tools (optional)
 pytest>=7.4.0,<8.0.0
 black>=23.7.0,<24.0.0
+
+# SAM Model Foundry Dependencies
+transformers>=4.40.0,<5.0.0
+torch>=2.0.0,<3.0.0
+bitsandbytes>=0.41.0,<1.0.0
+sentencepiece>=0.1.99,<1.0.0
+protobuf>=3.20.0,<5.0.0
 
 # Note: Built-in Python modules are included automatically:
 # pathlib, json, datetime, threading, subprocess, signal, time,
