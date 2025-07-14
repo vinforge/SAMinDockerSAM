@@ -984,74 +984,7 @@ def render_messages_from_sam_alert():
         </div>
         """, unsafe_allow_html=True)
 
-def render_opt_in_features_section():
-    """Render opt-in features toggle section."""
-    try:
-        from sam.entitlements.feature_manager import get_opt_in_features, enable_feature, disable_feature
 
-        st.header("🧠 Beta Features")
-        st.markdown("*Enable cutting-edge features that are ready for early access*")
-
-        # Get available opt-in features
-        opt_in_features = get_opt_in_features()
-
-        if opt_in_features:
-            for feature in opt_in_features:
-                with st.container():
-                    col1, col2 = st.columns([3, 1])
-
-                    with col1:
-                        # Feature header with beta badge
-                        header_text = f"**{feature['ui_label']}**"
-                        if feature.get('beta', False):
-                            header_text += " 🧪"
-                        st.markdown(header_text)
-
-                        # Description
-                        st.markdown(f"*{feature['description']}*")
-
-                        # Capabilities
-                        if feature.get('capabilities'):
-                            with st.expander("✨ Capabilities", expanded=False):
-                                for capability in feature['capabilities']:
-                                    st.markdown(f"• {capability}")
-
-                    with col2:
-                        # Toggle button
-                        current_state = feature['enabled']
-
-                        if st.button(
-                            "✅ Enabled" if current_state else "⚪ Enable",
-                            key=f"toggle_{feature['name']}",
-                            type="secondary" if current_state else "primary",
-                            use_container_width=True
-                        ):
-                            if current_state:
-                                # Disable feature
-                                result = disable_feature(feature['name'])
-                                if result['success']:
-                                    st.success(f"✅ {feature['ui_label']} disabled")
-                                    st.rerun()
-                                else:
-                                    st.error(f"❌ {result['message']}")
-                            else:
-                                # Enable feature
-                                result = enable_feature(feature['name'])
-                                if result['success']:
-                                    st.success(f"🎉 {feature['ui_label']} enabled!")
-                                    st.balloons()
-                                    st.rerun()
-                                else:
-                                    st.error(f"❌ {result['message']}")
-
-                    st.markdown("---")
-        else:
-            st.info("🔧 No opt-in features available at this time")
-
-    except ImportError:
-        st.warning("⚠️ Feature management system not available")
-    except Exception as e:
-        st.error(f"❌ Error loading opt-in features: {e}")
 
 def render_sam_pro_sidebar():
     """Render SAM Pro activation sidebar with key entry (preserving 100% of existing functionality)."""
@@ -1166,9 +1099,7 @@ def render_sam_pro_sidebar():
         except Exception as e:
             st.error(f"❌ Error loading activation system: {e}")
 
-        # Opt-in Features Section (NEW)
-        st.markdown("---")
-        render_opt_in_features_section()
+
 
         # Separator
         st.markdown("---")
@@ -1202,6 +1133,16 @@ def render_sam_pro_sidebar():
             st.caption("🎛️ You'll be asked before web searches occur")
         else:
             st.caption("⚡ Web searches happen automatically for current information")
+
+        # Separator
+        st.markdown("---")
+
+        # Memory Control Center Link
+        st.subheader("🎛️ Memory Control Center")
+        if st.button("🎛️ Open Memory Control Center", use_container_width=True, type="secondary"):
+            st.session_state.show_memory_control_center = True
+            st.rerun()
+        st.caption("Advanced memory management and analytics")
 
         # Separator
         st.markdown("---")
@@ -1300,6 +1241,20 @@ def render_sam_pro_sidebar():
 
         for item in status_items:
             st.caption(item)
+
+        # Separator
+        st.markdown("---")
+
+        # Lock SAM Button
+        st.subheader("🔒 Secure Status")
+        if st.button("🔒 Lock SAM", use_container_width=True, type="secondary"):
+            try:
+                st.session_state.security_manager.lock_application()
+                st.success("🔒 SAM has been locked securely!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Failed to lock SAM: {e}")
+        st.caption("Lock SAM to protect your data and conversations")
 
 def render_tpv_status():
     """Render enhanced TPV status with Phase 5B dissonance monitoring."""
