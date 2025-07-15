@@ -298,11 +298,11 @@ def launch_full_suite():
         processes.append(("Secure Streamlit", streamlit_process))
         time.sleep(3)  # Give more time for primary interface to start
 
-        # Launch Web UI (no auto-open)
-        print("🌐 Starting Secure Web UI...")
-        web_process = subprocess.Popen([sys.executable, "web_ui/app.py"])
-        processes.append(("Web UI", web_process))
-        time.sleep(2)
+        # Skip Web UI launch - Secure Streamlit app provides all functionality
+        print("🌐 Secure Web UI: Integrated into Streamlit interface")
+        # web_process = subprocess.Popen([sys.executable, "web_ui/app.py"])
+        # processes.append(("Web UI", web_process))
+        time.sleep(1)
 
         print("✅ Memory Control Center integrated into Secure Streamlit App")
         print("   Access via the 'Memory Center' tab at http://localhost:8502")
@@ -314,8 +314,8 @@ def launch_full_suite():
         print("  3. Use the navigation buttons in SAM to access other interfaces")
         print("\n🌐 Available interfaces:")
         print("  • 🔑 Secure SAM Interface: http://localhost:8502 (OPENS AUTOMATICALLY)")
-        print("  • 🌐 Secure Web UI: http://localhost:5001")
         print("  • 🧠 Memory Control Center: Integrated into SAM interface (sidebar button)")
+        print("  • 🌐 All features available through the main Streamlit interface")
         print("\n🎯 **SAM Pro Activation:**")
         print("  • Look for '🔑 SAM Pro Activation' in the sidebar after authentication")
         print("  • Enter your activation key to unlock premium features")
