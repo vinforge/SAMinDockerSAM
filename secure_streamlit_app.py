@@ -2065,6 +2065,19 @@ def render_conversation_history_sidebar():
                 # Clear the notification after showing it
                 del st.session_state['conversation_resumed']
 
+            # Separator
+            st.markdown("---")
+
+            # Memory Control Center Link
+            st.subheader("🎛️ Memory Control Center")
+            if st.button("🎛️ Open Memory Control Center", use_container_width=True, type="secondary"):
+                st.session_state.show_memory_control_center = True
+                st.rerun()
+            st.caption("Advanced memory management and analytics")
+
+            # Separator
+            st.markdown("---")
+
             # Debug info (can be removed in production)
             if st.checkbox("🔍 Show Debug Info", value=False):
                 relevance_check = st.session_state.get('last_relevance_check')
