@@ -630,39 +630,104 @@ def render_main_sam_application():
         with tab5:
             render_security_dashboard()
 
-def initialize_secure_sam():
-    """Initialize SAM components with security integration."""
+def is_memory_store_ready():
+    """Check if the memory store is ready for use."""
+    return (st.session_state.get('memory_store_ready', False) and
+            hasattr(st.session_state, 'secure_memory_store') and
+            st.session_state.secure_memory_store is not None)
 
-    # Initialize secure memory store with security manager
-    if 'secure_memory_store' not in st.session_state:
-        from memory.secure_memory_vectorstore import get_secure_memory_store, VectorStoreType
-
-        # Create secure memory store with security manager connection
-        st.session_state.secure_memory_store = get_secure_memory_store(
-            store_type=VectorStoreType.CHROMA,
-            storage_directory="memory_store",
-            embedding_dimension=384,
-            enable_encryption=True,
-            security_manager=st.session_state.security_manager  # Connect to security manager
-        )
-        logger.info("Secure memory store initialized with security integration")
-
-        # Try to activate encryption if security manager is unlocked
-        if (hasattr(st.session_state.security_manager, 'is_unlocked') and
-            st.session_state.security_manager.is_unlocked()):
-            if st.session_state.secure_memory_store.activate_encryption():
-                logger.info("✅ Encryption activated for secure memory store")
-            else:
-                logger.warning("⚠️ Failed to activate encryption for secure memory store")
-        else:
-            logger.info("🔒 Secure memory store created - encryption will activate after authentication")
+def get_memory_store_status():
+    """Get current memory store loading status."""
+    if st.session_state.get('memory_store_loading', False):
+        return "loading"
+    elif st.session_state.get('memory_store_error'):
+        return "error"
+    elif is_memory_store_ready():
+        return "ready"
     else:
-        # If memory store already exists, try to activate encryption
+        return "not_initialized"
+
+def initialize_secure_sam():
+    """Initialize SAM components with security integration and background loading."""
+
+    # Initialize secure memory store with BACKGROUND LOADING for faster startup
+    if 'secure_memory_store' not in st.session_state:
+        # Set loading state immediately
+        st.session_state.memory_store_loading = True
+        st.session_state.memory_store_ready = False
+
+        # Start background initialization
+        import threading
+
+        def background_memory_init():
+            """Initialize memory store in background thread."""
+            try:
+                from memory.secure_memory_vectorstore import get_secure_memory_store, VectorStoreType
+
+                logger.info("🔄 Starting background memory store initialization...")
+
+                # Create secure memory store with security manager connection
+                memory_store = get_secure_memory_store(
+                    store_type=VectorStoreType.CHROMA,
+                    storage_directory="memory_store",
+                    embedding_dimension=384,
+                    enable_encryption=True,
+                    security_manager=st.session_state.security_manager  # Connect to security manager
+                )
+
+                # Store in session state
+                st.session_state.secure_memory_store = memory_store
+                st.session_state.memory_store_loading = False
+                st.session_state.memory_store_ready = True
+
+                logger.info("✅ Background memory store initialization completed")
+
+            except Exception as e:
+                logger.error(f"❌ Background memory store initialization failed: {e}")
+                st.session_state.memory_store_loading = False
+                st.session_state.memory_store_error = str(e)
+
+        # Start background thread
+        memory_thread = threading.Thread(target=background_memory_init, daemon=True)
+        memory_thread.start()
+
+        logger.info("🚀 Memory store initialization started in background - UI available immediately")
+
+        # Show loading status in sidebar
+        if st.session_state.get('memory_store_loading', False):
+            with st.sidebar:
+                st.info("🔄 Loading memory store in background...")
+                st.caption("Chat is available while loading")
+        elif st.session_state.get('memory_store_error'):
+            with st.sidebar:
+                st.error(f"❌ Memory store error: {st.session_state.memory_store_error}")
+        elif st.session_state.get('memory_store_ready', False):
+            with st.sidebar:
+                st.success("✅ Memory store ready")
+
+    else:
+        # Memory store already exists - handle encryption activation
         if (hasattr(st.session_state.secure_memory_store, 'activate_encryption') and
             st.session_state.security_manager.is_unlocked()):
-            encryption_activated = st.session_state.secure_memory_store.activate_encryption()
-            if encryption_activated:
-                logger.info("✅ Encryption activated for existing memory store")
+            try:
+                encryption_activated = st.session_state.secure_memory_store.activate_encryption()
+                if encryption_activated:
+                    logger.info("✅ Encryption activated for existing memory store")
+            except Exception as e:
+                logger.warning(f"⚠️ Encryption activation failed: {e}")
+
+    # Handle encryption activation for background-loaded store
+    if (st.session_state.get('memory_store_ready', False) and
+        hasattr(st.session_state, 'secure_memory_store') and
+        hasattr(st.session_state.security_manager, 'is_unlocked') and
+        st.session_state.security_manager.is_unlocked()):
+        try:
+            if st.session_state.secure_memory_store.activate_encryption():
+                logger.info("✅ Encryption activated for background-loaded memory store")
+            else:
+                logger.warning("⚠️ Failed to activate encryption for background-loaded memory store")
+        except Exception as e:
+            logger.warning(f"⚠️ Encryption activation error: {e}")
     
     # Initialize embedding manager
     if 'embedding_manager' not in st.session_state:
@@ -2073,6 +2138,23 @@ def render_conversation_history_sidebar():
                 st.session_state.show_memory_control_center = True
                 st.rerun()
             st.caption("Advanced memory management and analytics")
+
+            # Memory Store Status Indicator
+            memory_status = get_memory_store_status()
+            if memory_status == "loading":
+                st.info("🔄 Memory store loading in background...")
+                st.caption("Chat available while loading")
+            elif memory_status == "error":
+                st.error("❌ Memory store error")
+                if st.button("🔄 Retry Memory Store", type="secondary"):
+                    # Reset error state and retry
+                    if 'memory_store_error' in st.session_state:
+                        del st.session_state['memory_store_error']
+                    if 'secure_memory_store' in st.session_state:
+                        del st.session_state['secure_memory_store']
+                    st.rerun()
+            elif memory_status == "ready":
+                st.success("✅ Memory store ready")
 
             # Separator
             st.markdown("---")
@@ -8412,10 +8494,19 @@ def search_unified_memory(query: str, max_results: int = 5) -> list:
 
         logger.info(f"🔍 ENHANCED MEMORY SEARCH: '{query}' (max_results: {max_results})")
 
+        # Check if memory store is ready
+        memory_status = get_memory_store_status()
+        if memory_status == "loading":
+            logger.info("🔄 Memory store still loading - returning empty results")
+            return []
+        elif memory_status == "error":
+            logger.warning("❌ Memory store error - returning empty results")
+            return []
+
         # PRIORITY 0: Search for user corrections first (CRITICAL FIX)
         correction_results = []
         try:
-            if hasattr(st.session_state, 'secure_memory_store') and st.session_state.secure_memory_store:
+            if is_memory_store_ready():
                 # Search for user corrections using tags (since content_type is now in metadata)
                 correction_results = st.session_state.secure_memory_store.search_memories(
                     query=query,
