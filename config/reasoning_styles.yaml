@@ -1,0 +1,103 @@
+# SAM Reasoning Styles Configuration
+# ==================================
+# Configuration for prompt-based reasoning style steering
+
+# Default reasoning style for new users
+default_style: "step_by_step_reasoning"
+
+# Global steering configuration
+steering_config:
+  enabled: true
+  max_strength: 3.0
+  min_strength: 0.1
+  default_strength: 1.0
+  
+# Reasoning style definitions
+styles:
+  step_by_step_reasoning:
+    description: "Systematic step-by-step logical progression"
+    strength: 1.0
+    enabled: true
+    cognitive_focus: ["systematic", "logical", "structured"]
+    use_cases: ["problem solving", "tutorials", "mathematical reasoning"]
+    
+  researcher_style:
+    description: "Detailed analytical reasoning with research methodology"
+    strength: 1.2
+    enabled: true
+    cognitive_focus: ["analytical", "evidence-based", "methodical"]
+    use_cases: ["academic research", "complex analysis", "investigations"]
+    
+  creative_explorer:
+    description: "Creative and exploratory thinking patterns"
+    strength: 1.1
+    enabled: true
+    cognitive_focus: ["creative", "innovative", "exploratory"]
+    use_cases: ["brainstorming", "innovation", "artistic endeavors"]
+
+# Profile-specific style mappings
+profile_mappings:
+  general:
+    default_style: "step_by_step_reasoning"
+    allowed_styles: ["step_by_step_reasoning", "creative_explorer"]
+    
+  researcher:
+    default_style: "researcher_style"
+    allowed_styles: ["researcher_style", "step_by_step_reasoning"]
+    
+  creative:
+    default_style: "creative_explorer"
+    allowed_styles: ["creative_explorer", "step_by_step_reasoning"]
+
+# Integration settings
+integration:
+  # Enable automatic style selection based on query analysis
+  auto_style_detection: true
+  
+  # Keywords that trigger specific styles
+  style_triggers:
+    researcher_style:
+      - "analyze"
+      - "research"
+      - "investigate"
+      - "evidence"
+      - "methodology"
+      
+    step_by_step_reasoning:
+      - "explain"
+      - "how to"
+      - "step by step"
+      - "process"
+      - "procedure"
+      
+    creative_explorer:
+      - "brainstorm"
+      - "creative"
+      - "innovative"
+      - "alternative"
+      - "possibilities"
+  
+  # Fallback behavior
+  fallback_to_default: true
+  log_style_applications: true
+
+# Advanced configuration
+advanced:
+  # Strength adaptation based on query complexity
+  adaptive_strength:
+    enabled: true
+    simple_queries: 0.8
+    moderate_queries: 1.0
+    complex_queries: 1.3
+    
+  # Context-aware steering
+  context_awareness:
+    enabled: true
+    consider_chat_history: true
+    consider_user_expertise: true
+    
+  # Performance optimization
+  caching:
+    enabled: true
+    cache_enhanced_prompts: true
+    cache_ttl_seconds: 3600

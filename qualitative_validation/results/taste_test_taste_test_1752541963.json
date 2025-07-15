@@ -1,0 +1,809 @@
+{
+  "session_id": "taste_test_1752541963",
+  "timestamp": "2025-07-14T21:12:43.233741",
+  "prompts_tested": 15,
+  "styles_tested": [
+    "researcher_style",
+    "step_by_step_reasoning",
+    "creative_explorer"
+  ],
+  "results": [
+    {
+      "prompt_id": "tech_explanation",
+      "prompt_text": "How does machine learning work?",
+      "category": "Technical Explanation",
+      "expected_differences": "Researcher should be analytical, Step-by-step should be structured, Creative should offer novel analogies",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: How does machine learning work?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 417,
+          "enhancement_ratio": 13.451612903225806
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: How does machine learning work?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 381,
+          "enhancement_ratio": 12.290322580645162
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: How does machine learning work?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 394,
+          "enhancement_ratio": 12.709677419354838
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 381,
+          "max_length": 417,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 417,
+            "step_by_step_reasoning": 381,
+            "creative_explorer": 394
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 12.290322580645162,
+          "max_ratio": 13.451612903225806,
+          "ratio_spread": 1.1612903225806441,
+          "style_ratios": {
+            "researcher_style": 13.451612903225806,
+            "step_by_step_reasoning": 12.290322580645162,
+            "creative_explorer": 12.709677419354838
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "problem_solving",
+      "prompt_text": "How would you solve climate change?",
+      "category": "Complex Problem Solving",
+      "expected_differences": "Researcher should examine evidence, Step-by-step should break down approaches, Creative should think outside the box",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: How would you solve climate change?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 421,
+          "enhancement_ratio": 12.028571428571428
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: How would you solve climate change?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 385,
+          "enhancement_ratio": 11.0
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: How would you solve climate change?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 398,
+          "enhancement_ratio": 11.371428571428572
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 385,
+          "max_length": 421,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 421,
+            "step_by_step_reasoning": 385,
+            "creative_explorer": 398
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 11.0,
+          "max_ratio": 12.028571428571428,
+          "ratio_spread": 1.0285714285714285,
+          "style_ratios": {
+            "researcher_style": 12.028571428571428,
+            "step_by_step_reasoning": 11.0,
+            "creative_explorer": 11.371428571428572
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "scientific_concept",
+      "prompt_text": "Explain quantum entanglement to a college student.",
+      "category": "Scientific Education",
+      "expected_differences": "Researcher should be precise and evidence-based, Step-by-step should build concepts progressively, Creative should use innovative metaphors",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: Explain quantum entanglement to a college student.\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 436,
+          "enhancement_ratio": 8.72
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: Explain quantum entanglement to a college student.\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 400,
+          "enhancement_ratio": 8.0
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: Explain quantum entanglement to a college student.\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 413,
+          "enhancement_ratio": 8.26
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 400,
+          "max_length": 436,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 436,
+            "step_by_step_reasoning": 400,
+            "creative_explorer": 413
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 8.0,
+          "max_ratio": 8.72,
+          "ratio_spread": 0.7200000000000006,
+          "style_ratios": {
+            "researcher_style": 8.72,
+            "step_by_step_reasoning": 8.0,
+            "creative_explorer": 8.26
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "business_strategy",
+      "prompt_text": "What are the key factors for a successful startup?",
+      "category": "Business Strategy",
+      "expected_differences": "Researcher should cite studies and data, Step-by-step should outline systematic approach, Creative should suggest unconventional strategies",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: What are the key factors for a successful startup?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 436,
+          "enhancement_ratio": 8.72
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: What are the key factors for a successful startup?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 400,
+          "enhancement_ratio": 8.0
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: What are the key factors for a successful startup?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 413,
+          "enhancement_ratio": 8.26
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 400,
+          "max_length": 436,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 436,
+            "step_by_step_reasoning": 400,
+            "creative_explorer": 413
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 8.0,
+          "max_ratio": 8.72,
+          "ratio_spread": 0.7200000000000006,
+          "style_ratios": {
+            "researcher_style": 8.72,
+            "step_by_step_reasoning": 8.0,
+            "creative_explorer": 8.26
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "ethical_dilemma",
+      "prompt_text": "Should AI systems have rights?",
+      "category": "Ethical Reasoning",
+      "expected_differences": "Researcher should examine philosophical arguments, Step-by-step should analyze systematically, Creative should explore novel perspectives",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: Should AI systems have rights?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 416,
+          "enhancement_ratio": 13.866666666666667
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: Should AI systems have rights?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 380,
+          "enhancement_ratio": 12.666666666666666
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: Should AI systems have rights?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 393,
+          "enhancement_ratio": 13.1
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 380,
+          "max_length": 416,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 416,
+            "step_by_step_reasoning": 380,
+            "creative_explorer": 393
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 12.666666666666666,
+          "max_ratio": 13.866666666666667,
+          "ratio_spread": 1.200000000000001,
+          "style_ratios": {
+            "researcher_style": 13.866666666666667,
+            "step_by_step_reasoning": 12.666666666666666,
+            "creative_explorer": 13.1
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "historical_analysis",
+      "prompt_text": "What caused the fall of the Roman Empire?",
+      "category": "Historical Analysis",
+      "expected_differences": "Researcher should examine multiple sources, Step-by-step should trace causal chains, Creative should consider alternative theories",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: What caused the fall of the Roman Empire?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 427,
+          "enhancement_ratio": 10.414634146341463
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: What caused the fall of the Roman Empire?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 391,
+          "enhancement_ratio": 9.536585365853659
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: What caused the fall of the Roman Empire?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 404,
+          "enhancement_ratio": 9.853658536585366
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 391,
+          "max_length": 427,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 427,
+            "step_by_step_reasoning": 391,
+            "creative_explorer": 404
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 9.536585365853659,
+          "max_ratio": 10.414634146341463,
+          "ratio_spread": 0.8780487804878039,
+          "style_ratios": {
+            "researcher_style": 10.414634146341463,
+            "step_by_step_reasoning": 9.536585365853659,
+            "creative_explorer": 9.853658536585366
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "creative_task",
+      "prompt_text": "Design a city of the future.",
+      "category": "Creative Design",
+      "expected_differences": "Researcher should ground in urban planning research, Step-by-step should outline design process, Creative should envision radical innovations",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: Design a city of the future.\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 414,
+          "enhancement_ratio": 14.785714285714286
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: Design a city of the future.\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 378,
+          "enhancement_ratio": 13.5
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: Design a city of the future.\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 391,
+          "enhancement_ratio": 13.964285714285714
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 378,
+          "max_length": 414,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 414,
+            "step_by_step_reasoning": 378,
+            "creative_explorer": 391
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 13.5,
+          "max_ratio": 14.785714285714286,
+          "ratio_spread": 1.2857142857142865,
+          "style_ratios": {
+            "researcher_style": 14.785714285714286,
+            "step_by_step_reasoning": 13.5,
+            "creative_explorer": 13.964285714285714
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "mathematical_concept",
+      "prompt_text": "Explain calculus and why it's important.",
+      "category": "Mathematical Education",
+      "expected_differences": "Researcher should discuss historical development, Step-by-step should build from basics, Creative should find engaging applications",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: Explain calculus and why it's important.\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 426,
+          "enhancement_ratio": 10.65
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: Explain calculus and why it's important.\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 390,
+          "enhancement_ratio": 9.75
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: Explain calculus and why it's important.\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 403,
+          "enhancement_ratio": 10.075
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 390,
+          "max_length": 426,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 426,
+            "step_by_step_reasoning": 390,
+            "creative_explorer": 403
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 9.75,
+          "max_ratio": 10.65,
+          "ratio_spread": 0.9000000000000004,
+          "style_ratios": {
+            "researcher_style": 10.65,
+            "step_by_step_reasoning": 9.75,
+            "creative_explorer": 10.075
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "health_advice",
+      "prompt_text": "How can someone improve their mental health?",
+      "category": "Health & Wellness",
+      "expected_differences": "Researcher should cite evidence-based practices, Step-by-step should provide actionable plan, Creative should suggest innovative approaches",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: How can someone improve their mental health?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 430,
+          "enhancement_ratio": 9.772727272727273
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: How can someone improve their mental health?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 394,
+          "enhancement_ratio": 8.954545454545455
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: How can someone improve their mental health?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 407,
+          "enhancement_ratio": 9.25
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 394,
+          "max_length": 430,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 430,
+            "step_by_step_reasoning": 394,
+            "creative_explorer": 407
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 8.954545454545455,
+          "max_ratio": 9.772727272727273,
+          "ratio_spread": 0.8181818181818183,
+          "style_ratios": {
+            "researcher_style": 9.772727272727273,
+            "step_by_step_reasoning": 8.954545454545455,
+            "creative_explorer": 9.25
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "technology_impact",
+      "prompt_text": "How will artificial intelligence change society?",
+      "category": "Future Prediction",
+      "expected_differences": "Researcher should analyze current trends, Step-by-step should trace logical implications, Creative should imagine transformative scenarios",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: How will artificial intelligence change society?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 434,
+          "enhancement_ratio": 9.041666666666666
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: How will artificial intelligence change society?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 398,
+          "enhancement_ratio": 8.291666666666666
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: How will artificial intelligence change society?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 411,
+          "enhancement_ratio": 8.5625
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 398,
+          "max_length": 434,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 434,
+            "step_by_step_reasoning": 398,
+            "creative_explorer": 411
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 8.291666666666666,
+          "max_ratio": 9.041666666666666,
+          "ratio_spread": 0.75,
+          "style_ratios": {
+            "researcher_style": 9.041666666666666,
+            "step_by_step_reasoning": 8.291666666666666,
+            "creative_explorer": 8.5625
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "learning_strategy",
+      "prompt_text": "What's the best way to learn a new language?",
+      "category": "Educational Strategy",
+      "expected_differences": "Researcher should reference language acquisition research, Step-by-step should outline systematic approach, Creative should suggest immersive techniques",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: What's the best way to learn a new language?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 430,
+          "enhancement_ratio": 9.772727272727273
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: What's the best way to learn a new language?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 394,
+          "enhancement_ratio": 8.954545454545455
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: What's the best way to learn a new language?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 407,
+          "enhancement_ratio": 9.25
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 394,
+          "max_length": 430,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 430,
+            "step_by_step_reasoning": 394,
+            "creative_explorer": 407
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 8.954545454545455,
+          "max_ratio": 9.772727272727273,
+          "ratio_spread": 0.8181818181818183,
+          "style_ratios": {
+            "researcher_style": 9.772727272727273,
+            "step_by_step_reasoning": 8.954545454545455,
+            "creative_explorer": 9.25
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "philosophical_question",
+      "prompt_text": "What is the meaning of life?",
+      "category": "Philosophy",
+      "expected_differences": "Researcher should examine philosophical traditions, Step-by-step should analyze different approaches, Creative should offer fresh perspectives",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: What is the meaning of life?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 414,
+          "enhancement_ratio": 14.785714285714286
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: What is the meaning of life?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 378,
+          "enhancement_ratio": 13.5
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: What is the meaning of life?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 391,
+          "enhancement_ratio": 13.964285714285714
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 378,
+          "max_length": 414,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 414,
+            "step_by_step_reasoning": 378,
+            "creative_explorer": 391
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 13.5,
+          "max_ratio": 14.785714285714286,
+          "ratio_spread": 1.2857142857142865,
+          "style_ratios": {
+            "researcher_style": 14.785714285714286,
+            "step_by_step_reasoning": 13.5,
+            "creative_explorer": 13.964285714285714
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "practical_advice",
+      "prompt_text": "How do I prepare for a job interview?",
+      "category": "Practical Guidance",
+      "expected_differences": "Researcher should cite interview research, Step-by-step should provide systematic preparation, Creative should suggest unique strategies",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: How do I prepare for a job interview?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 423,
+          "enhancement_ratio": 11.432432432432432
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: How do I prepare for a job interview?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 387,
+          "enhancement_ratio": 10.45945945945946
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: How do I prepare for a job interview?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 400,
+          "enhancement_ratio": 10.81081081081081
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 387,
+          "max_length": 423,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 423,
+            "step_by_step_reasoning": 387,
+            "creative_explorer": 400
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 10.45945945945946,
+          "max_ratio": 11.432432432432432,
+          "ratio_spread": 0.9729729729729719,
+          "style_ratios": {
+            "researcher_style": 11.432432432432432,
+            "step_by_step_reasoning": 10.45945945945946,
+            "creative_explorer": 10.81081081081081
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "scientific_discovery",
+      "prompt_text": "How do vaccines work?",
+      "category": "Scientific Mechanism",
+      "expected_differences": "Researcher should detail immunological evidence, Step-by-step should trace the process, Creative should use accessible analogies",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: How do vaccines work?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 407,
+          "enhancement_ratio": 19.38095238095238
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: How do vaccines work?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 371,
+          "enhancement_ratio": 17.666666666666668
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: How do vaccines work?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 384,
+          "enhancement_ratio": 18.285714285714285
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 371,
+          "max_length": 407,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 407,
+            "step_by_step_reasoning": 371,
+            "creative_explorer": 384
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 17.666666666666668,
+          "max_ratio": 19.38095238095238,
+          "ratio_spread": 1.7142857142857117,
+          "style_ratios": {
+            "researcher_style": 19.38095238095238,
+            "step_by_step_reasoning": 17.666666666666668,
+            "creative_explorer": 18.285714285714285
+          }
+        }
+      }
+    },
+    {
+      "prompt_id": "innovation_challenge",
+      "prompt_text": "How might we make transportation more sustainable?",
+      "category": "Innovation Challenge",
+      "expected_differences": "Researcher should analyze current solutions, Step-by-step should systematic evaluation, Creative should propose breakthrough ideas",
+      "style_outputs": {
+        "researcher_style": {
+          "enhanced_prompt": "System: Adopt the mindset of a meticulous researcher. Approach this query with systematic analysis, consider multiple perspectives, cite relevant principles, and show your analytical methodology clearly. Break down complex problems into components and examine each thoroughly.\n\nUser Query: How might we make transportation more sustainable?\n\nPlease respond following the detailed analytical reasoning with research methodology approach.",
+          "prompt_length": 436,
+          "enhancement_ratio": 8.72
+        },
+        "step_by_step_reasoning": {
+          "enhanced_prompt": "System: Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.\n\nUser Query: How might we make transportation more sustainable?\n\nPlease respond following the systematic step-by-step logical progression approach.",
+          "prompt_length": 400,
+          "enhancement_ratio": 8.0
+        },
+        "creative_explorer": {
+          "enhanced_prompt": "System: Approach this question with creative exploration and innovative thinking. Consider unconventional perspectives, explore alternative possibilities, think outside traditional boundaries, and generate novel insights. Embrace creative problem-solving approaches.\n\nUser Query: How might we make transportation more sustainable?\n\nPlease respond following the creative and exploratory thinking patterns approach.",
+          "prompt_length": 413,
+          "enhancement_ratio": 8.26
+        }
+      },
+      "analysis": {
+        "style_distinctiveness": {
+          "unique_outputs": 3,
+          "total_styles": 3,
+          "distinctiveness_ratio": 1.0,
+          "all_different": true
+        },
+        "length_variations": {
+          "min_length": 400,
+          "max_length": 436,
+          "length_range": 36,
+          "style_lengths": {
+            "researcher_style": 436,
+            "step_by_step_reasoning": 400,
+            "creative_explorer": 413
+          }
+        },
+        "enhancement_patterns": {
+          "min_ratio": 8.0,
+          "max_ratio": 8.72,
+          "ratio_spread": 0.7200000000000006,
+          "style_ratios": {
+            "researcher_style": 8.72,
+            "step_by_step_reasoning": 8.0,
+            "creative_explorer": 8.26
+          }
+        }
+      }
+    }
+  ],
+  "overall_analysis": {
+    "summary_stats": {
+      "total_prompts_tested": 15,
+      "successful_tests": 15,
+      "success_rate": 1.0
+    },
+    "style_performance": {
+      "researcher_style": {
+        "success_count": 15,
+        "success_rate": 1.0,
+        "avg_enhancement_ratio": 11.702894649449329,
+        "avg_prompt_length": 424.46666666666664
+      },
+      "step_by_step_reasoning": {
+        "success_count": 15,
+        "success_rate": 1.0,
+        "avg_enhancement_ratio": 10.70469722100328,
+        "avg_prompt_length": 388.46666666666664
+      },
+      "creative_explorer": {
+        "success_count": 15,
+        "success_rate": 1.0,
+        "avg_enhancement_ratio": 11.065157403497686,
+        "avg_prompt_length": 401.46666666666664
+      }
+    },
+    "recommendations": [
+      "\u2705 High success rate - system is stable and reliable",
+      "\u2705 Styles are highly distinctive - good differentiation"
+    ],
+    "distinctiveness_rate": 1.0
+  }
+}

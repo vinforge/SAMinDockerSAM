@@ -992,6 +992,22 @@ def render_sam_pro_sidebar():
         # Messages from SAM Alert (Task 27)
         render_messages_from_sam_alert()
 
+        # Profile-Based Reasoning Integration (Final Phase)
+        try:
+            from sam.profiles.reasoning_profile_integration import render_profile_reasoning_controls
+            render_profile_reasoning_controls()
+            st.markdown("---")
+        except Exception as e:
+            logger.warning(f"Profile reasoning controls not available: {e}")
+
+        # Manual Reasoning Style Controls (Phase 3 Integration)
+        try:
+            from sam.ui.reasoning_controls import render_reasoning_sidebar
+            render_reasoning_sidebar()
+            st.markdown("---")
+        except Exception as e:
+            logger.warning(f"Reasoning style controls not available: {e}")
+
         st.header("🔑 SAM Pro Activation")
 
         # Check current activation status
@@ -2069,6 +2085,13 @@ def render_chat_interface():
 
     # Render TPV status if available
     render_tpv_status()
+
+    # Render reasoning style status
+    try:
+        from sam.ui.reasoning_controls import render_reasoning_style_status
+        render_reasoning_style_status()
+    except Exception as e:
+        logger.warning(f"Reasoning style status not available: {e}")
 
     # NEW: Drag & Drop Document Upload Integration
     render_chat_document_upload()
@@ -8432,8 +8455,26 @@ def diagnose_memory_retrieval(query: str) -> dict:
 def generate_draft_response(prompt: str, force_local: bool = False) -> str:
     """Generate a draft response using SAM's capabilities (Stage 1 of two-stage pipeline - Task 30 Phase 2)."""
     try:
-        # Phase -3: Cognitive Distillation Enhancement (NEW - Phase 2 Integration)
+        # Phase -4: Profile-Based Reasoning Style Steering (NEW - Final Phase Integration)
         enhanced_prompt = prompt
+        try:
+            # First, check if we should apply profile-based reasoning
+            current_profile = st.session_state.get("current_profile")
+            if current_profile:
+                from sam.profiles.reasoning_profile_integration import apply_profile_reasoning_style
+                profile_style, profile_strength = apply_profile_reasoning_style(current_profile)
+                logger.info(f"🎯 Profile '{current_profile}' suggests reasoning style: {profile_style}")
+
+            # Then apply current reasoning style (which may be profile-based or user-selected)
+            from sam.ui.reasoning_controls import apply_current_reasoning_style
+            enhanced_prompt = apply_current_reasoning_style(prompt)
+            if enhanced_prompt != prompt:
+                logger.info(f"🧠 Applied reasoning style steering to prompt")
+        except Exception as e:
+            logger.warning(f"Reasoning style application failed: {e}")
+            enhanced_prompt = prompt
+
+        # Phase -3: Cognitive Distillation Enhancement (NEW - Phase 2 Integration)
         transparency_data = {}
 
         try:
@@ -8447,12 +8488,12 @@ def generate_draft_response(prompt: str, force_local: bool = False) -> str:
                     'user_session': st.session_state.get('session_id', 'default'),
                     'interface': 'secure_chat',
                     'force_local': force_local,
-                    'query_length': len(prompt),
+                    'query_length': len(enhanced_prompt),
                     'timestamp': datetime.now().isoformat()
                 }
 
-                # Enhance reasoning with cognitive principles
-                enhanced_prompt, transparency_data = cognitive_distillation.enhance_reasoning(prompt, context)
+                # Enhance reasoning with cognitive principles (using reasoning-style-enhanced prompt)
+                enhanced_prompt, transparency_data = cognitive_distillation.enhance_reasoning(enhanced_prompt, context)
 
                 # Store transparency data for UI display
                 st.session_state['last_transparency_data'] = transparency_data

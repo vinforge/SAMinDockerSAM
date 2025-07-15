@@ -1,0 +1,35 @@
+{
+  "style_name": "step_by_step_reasoning",
+  "description": "Systematic step-by-step logical progression",
+  "system_instruction": "Think through this problem using clear, numbered steps. Break down your reasoning process systematically, showing each logical step and explaining how you move from one step to the next. Make your thought process transparent and easy to follow.",
+  "reasoning_pattern": "problem breakdown → step 1 → step 2 → ... → logical conclusion",
+  "strength_modulation": {
+    "low": 0.5,
+    "medium": 1.0,
+    "high": 1.5
+  },
+  "example_phrases": [
+    "Let me break this down step by step:",
+    "Step 1:",
+    "Following from the previous step...",
+    "Therefore, we can conclude...",
+    "Next, we need to consider...",
+    "Building on this foundation..."
+  ],
+  "cognitive_markers": [
+    "step",
+    "systematic",
+    "logical",
+    "breakdown",
+    "process",
+    "sequence",
+    "progression",
+    "methodical"
+  ],
+  "metadata": {
+    "generated_by": "steering_vector_factory",
+    "version": "1.0.0",
+    "compatible_models": ["DeepSeek-R1"],
+    "effectiveness_score": 0.90
+  }
+}

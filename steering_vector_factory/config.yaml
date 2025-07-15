@@ -1,0 +1,42 @@
+# Steering Vector Factory Configuration
+# ====================================
+
+# Teacher model for generating contrastive datasets
+teacher_model: "gpt-4"  # Options: gpt-4, gpt-3.5-turbo, claude-3-sonnet
+
+# Target model for steering vector extraction (DeepSeek-R1 variants)
+target_model: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+# Alternative models:
+# - "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" 
+# - "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF"
+
+# Hardware configuration
+device: "auto"  # Options: auto, cuda, cpu, mps
+load_in_8bit: true  # Use 8-bit quantization for memory efficiency
+
+# API configuration
+api_delay: 1.0  # Delay between API calls (seconds) to respect rate limits
+regenerate_datasets: false  # Set to true to regenerate existing datasets
+
+# Custom questions (optional)
+# custom_questions_file: "custom_questions.txt"
+
+# Additional questions to supplement the default set
+additional_questions:
+  - "How would you design a sustainable city?"
+  - "Explain the principles of effective communication."
+  - "What are the key challenges in space exploration?"
+  - "How does consciousness emerge from neural activity?"
+  - "What makes a scientific theory robust?"
+
+# Model extraction configuration
+extraction_config:
+  target_layers: [8, 9, 10, 11, 12, 13, 14, 15]  # Middle to late layers
+  max_sequence_length: 2048
+  batch_size: 1  # Keep small for memory efficiency
+
+# Output configuration
+output_config:
+  save_intermediate_files: true
+  generate_analysis_reports: true
+  copy_to_sam_assets: true
