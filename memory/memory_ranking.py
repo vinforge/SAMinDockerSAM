@@ -72,7 +72,10 @@ class MemoryRankingFramework:
             'priority_threshold': 0.4,  # CRITICAL FIX: Lowered from 0.7 to 0.4 to allow relevant content
             'recency_decay_days': 30,
             'max_priority_memories': 10,
-            'enable_auto_pinning': True
+            'enable_auto_pinning': True,
+            # Phase 3B: Master Verifier Data Pipeline Fortification
+            'superficiality_penalty': -0.3,  # Penalty applied to superficial chunks
+            'enable_superficiality_filtering': True  # Enable/disable superficiality penalties
         }
     
     def rank_memories(self, memories: List[Any], query: str = "", 
@@ -148,14 +151,24 @@ class MemoryRankingFramework:
             for factor, score in factor_scores.items():
                 weight = self.ranking_weights.get(factor.value, 0.0)
                 overall_score += weight * score
-            
+
+            # Phase 3B: Apply superficiality penalty to de-prioritize low-quality chunks
+            superficiality_penalty_applied = False
+            if self.config.get('enable_superficiality_filtering', True):
+                is_superficial = self._check_superficiality(memory)
+                if is_superficial:
+                    penalty = self.config.get('superficiality_penalty', -0.3)
+                    overall_score += penalty
+                    superficiality_penalty_applied = True
+                    logger.debug(f"Applied superficiality penalty of {penalty} to memory {getattr(memory, 'chunk_id', 'unknown')}")
+
             # Check if memory is pinned
             is_pinned = self._is_memory_pinned(memory)
             if is_pinned:
                 overall_score *= 1.2  # Boost pinned memories
-            
-            # Generate explanation
-            explanation = self._generate_ranking_explanation(factor_scores, overall_score)
+
+            # Generate explanation (include superficiality info)
+            explanation = self._generate_ranking_explanation(factor_scores, overall_score, superficiality_penalty_applied)
             
             memory_id = getattr(memory, 'chunk_id', getattr(memory, 'id', 'unknown'))
             if hasattr(memory, 'chunk'):
@@ -377,26 +390,55 @@ class MemoryRankingFramework:
         except Exception as e:
             logger.error(f"Error marking priority memories: {e}")
     
-    def _generate_ranking_explanation(self, factor_scores: Dict[RankingFactor, float], 
-                                    overall_score: float) -> str:
+    def _check_superficiality(self, memory: Any) -> bool:
+        """
+        Check if a memory chunk is marked as superficial.
+
+        Phase 3B: This method accesses the is_superficial flag from chunk metadata
+        that was set during the chunking process in Phase 3A.
+        """
+        try:
+            # Check metadata for superficiality flag
+            metadata = None
+            if hasattr(memory, 'chunk') and hasattr(memory.chunk, 'metadata'):
+                metadata = memory.chunk.metadata
+            elif hasattr(memory, 'metadata'):
+                metadata = memory.metadata
+
+            if metadata and isinstance(metadata, dict):
+                return metadata.get('is_superficial', False)
+
+            return False
+
+        except Exception as e:
+            logger.debug(f"Error checking superficiality: {e}")
+            return False  # Default to non-superficial if check fails
+
+    def _generate_ranking_explanation(self, factor_scores: Dict[RankingFactor, float],
+                                    overall_score: float, superficiality_penalty_applied: bool = False) -> str:
         """Generate human-readable explanation of ranking."""
         try:
             explanations = []
-            
+
             # Find top contributing factors
             sorted_factors = sorted(factor_scores.items(), key=lambda x: x[1], reverse=True)
-            
+
             for factor, score in sorted_factors[:3]:  # Top 3 factors
                 weight = self.ranking_weights.get(factor.value, 0.0)
                 contribution = weight * score
-                
+
                 if contribution > 0.1:  # Only mention significant factors
                     factor_name = factor.value.replace('_', ' ').title()
                     explanations.append(f"{factor_name}: {score:.2f}")
-            
+
+            # Phase 3B: Add superficiality penalty information
+            if superficiality_penalty_applied:
+                penalty = self.config.get('superficiality_penalty', -0.3)
+                explanations.append(f"Superficial Penalty: {penalty}")
+
             explanation = f"Score: {overall_score:.3f} | " + " | ".join(explanations)
             return explanation
-            
+
         except Exception as e:
             logger.debug(f"Error generating explanation: {e}")
             return f"Score: {overall_score:.3f}"
