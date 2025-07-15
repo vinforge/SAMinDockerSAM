@@ -2511,13 +2511,23 @@ def render_chat_interface():
                             "answer anyway"
                         ])
 
-                        # Check if user is explicitly requesting web search (preserving 100% of functionality)
+                        # Check if user is explicitly requesting DIRECT web search (only very explicit requests)
                         force_web_search = any(phrase in prompt.lower() for phrase in [
-                            "search up", "search for", "search about", "look up", "look for",
-                            "find out", "find information", "information about", "details about",
                             "search the web", "web search", "online search", "internet search",
-                            "current information", "latest information", "recent information"
+                            "search google", "google search", "search online"
                         ])
+
+                        # Check for temporal/freshness indicators (these should influence confidence, not bypass it)
+                        temporal_phrases = [
+                            "current information", "latest information", "recent information",
+                            "up to date", "most recent", "newest", "today", "this week", "this month",
+                            "latest", "current", "recent", "fresh", "updated"
+                        ]
+                        # Be more specific about "new" to avoid false positives like "AI news"
+                        has_temporal_indicators = (
+                            any(phrase in prompt.lower() for phrase in temporal_phrases) or
+                            " new " in f" {prompt.lower()} "  # Only match "new" as a standalone word
+                        )
 
                         # Check if this exact query recently triggered an escalation
                         recent_escalation = False
@@ -2531,9 +2541,9 @@ def render_chat_interface():
                         if recent_escalation:
                             force_local = True
 
-                        # If user explicitly requested web search, trigger it directly (preserving 100% of functionality)
+                        # Only bypass confidence assessment for VERY explicit web search requests
                         if force_web_search and not force_local:
-                            logger.info(f"🌐 User explicitly requested web search with keywords: {prompt}")
+                            logger.info(f"🌐 User explicitly requested direct web search with keywords: {prompt}")
                             with st.spinner("🔍 Searching the web as requested..."):
                                 search_result = perform_secure_web_search(prompt)
 
@@ -2552,7 +2562,11 @@ def render_chat_interface():
                                     # Fall back to normal response generation
 
                         # Enhanced response generation with procedural memory integration
-                        response_result = generate_enhanced_response_with_procedural_memory(prompt, force_local=force_local)
+                        response_result = generate_enhanced_response_with_procedural_memory(
+                            prompt,
+                            force_local=force_local,
+                            has_temporal_indicators=has_temporal_indicators
+                        )
 
                         # Debug logging for escalation detection (preserving 100% of functionality)
                         logger.info(f"🔍 Response result type: {type(response_result)}")
@@ -8321,7 +8335,8 @@ def create_web_search_escalation_message(assessment, original_query: str) -> str
             'mixed_timeliness': "I have a mix of recent and older information",
             'lacks_recent_content': "I don't have recent information on this topic",
             'insufficient_for_comparison': "I need more sources to provide a good comparison",
-            'lacks_procedural_content': "I don't have detailed step-by-step information"
+            'lacks_procedural_content': "I don't have detailed step-by-step information",
+            'temporal_indicators_detected': "You're asking for current/latest information, which may require fresh data"
         }
 
         formatted_reasons = []
@@ -8897,7 +8912,7 @@ def generate_draft_response(prompt: str, force_local: bool = False) -> str:
 
                 if web_search_mode == "Interactive":
                     # ALWAYS assess confidence for current information queries
-                    assessment = confidence_assessor.assess_retrieval_quality([], prompt)
+                    assessment = confidence_assessor.assess_retrieval_quality([], prompt, has_temporal_indicators)
                     logger.info(f"🔍 MANDATORY Pre-tool confidence assessment: {assessment.status} ({assessment.confidence_score:.2f})")
 
                     # For current information queries, ALWAYS offer interactive choice (FORCED FOR TESTING)
@@ -9256,7 +9271,7 @@ def generate_draft_response(prompt: str, force_local: bool = False) -> str:
                         }
                     })
 
-                assessment = confidence_assessor.assess_retrieval_quality(search_results_for_assessment, prompt)
+                assessment = confidence_assessor.assess_retrieval_quality(search_results_for_assessment, prompt, has_temporal_indicators)
 
                 logger.info(f"🔍 Confidence assessment: {assessment.status} ({assessment.confidence_score:.2f}) for query: {prompt[:50]}...")
 
@@ -9740,7 +9755,7 @@ Please try rephrasing your question or check if the relevant documents are uploa
                         confidence_assessor = get_confidence_assessor()
 
                         # Assess with empty results to trigger web search for knowledge gaps
-                        assessment = confidence_assessor.assess_retrieval_quality([], prompt)
+                        assessment = confidence_assessor.assess_retrieval_quality([], prompt, has_temporal_indicators)
                         logger.info(f"🔍 No results confidence assessment: {assessment.status} ({assessment.confidence_score:.2f})")
 
                         # Offer web search for knowledge gaps
@@ -10068,7 +10083,7 @@ def generate_final_response(user_question: str, force_local: bool = False) -> st
         logger.error(f"Two-stage response generation failed: {e}")
         return f"I apologize, but I encountered an error while processing your request: {e}"
 
-def generate_response_with_conversation_buffer(prompt: str, force_local: bool = False, original_query: str = None) -> str:
+def generate_response_with_conversation_buffer(prompt: str, force_local: bool = False, original_query: str = None, has_temporal_indicators: bool = False) -> str:
     """
     Enhanced conversation buffer wrapper with contextual relevance (Task 31 Phase 1).
 
@@ -13358,7 +13373,7 @@ def simulate_self_reflect_for_demo(response_text: str, query: str):
     except Exception as e:
         logger.debug(f"SELF-REFLECT simulation error: {e}")
 
-def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: bool = False):
+def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: bool = False, has_temporal_indicators: bool = False):
     """Enhanced response generation with procedural memory integration."""
     try:
         # Store the original user query for web search escalation
@@ -13370,7 +13385,7 @@ def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: 
         if not is_feature_enabled('procedural_memory'):
             # Feature not enabled - fall back to normal processing
             logger.debug("Procedural memory feature not enabled, using standard response generation")
-            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
+            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query, has_temporal_indicators=has_temporal_indicators)
 
         # Step 2: Check if procedural memory integration is available
         from sam.chat.procedural_chat_handler import get_procedural_chat_handler
@@ -13397,7 +13412,7 @@ def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: 
                     st.markdown(processing_result['procedural_context'])
 
             # Generate response with enhanced context but preserve original query for escalation
-            return generate_response_with_conversation_buffer(enhanced_prompt, force_local=force_local, original_query=original_user_query)
+            return generate_response_with_conversation_buffer(enhanced_prompt, force_local=force_local, original_query=original_user_query, has_temporal_indicators=has_temporal_indicators)
 
         elif processing_result.get('response_type') == 'procedural_not_found':
             # No procedures found - offer to create one
@@ -13407,21 +13422,21 @@ def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: 
             st.info("🧠 **Procedural Memory**: " + suggested_response)
 
             # Generate normal response
-            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
+            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query, has_temporal_indicators=has_temporal_indicators)
 
         else:
             # General chat or factual query - proceed normally
-            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
+            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query, has_temporal_indicators=has_temporal_indicators)
 
     except ImportError:
         # Procedural memory not available - fall back to normal processing
         logger.info("Procedural memory not available, using standard response generation")
-        return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
+        return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query, has_temporal_indicators=has_temporal_indicators)
 
     except Exception as e:
         # Error in procedural processing - fall back to normal processing
         logger.error(f"Error in procedural memory integration: {e}")
-        return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
+        return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query, has_temporal_indicators=has_temporal_indicators)
 
 def render_procedural_memory_integrated():
     """Render the Procedural Memory interface integrated into Memory Control Center."""

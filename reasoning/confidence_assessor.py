@@ -86,8 +86,8 @@ class ConfidenceAssessor:
         
         logger.info("ConfidenceAssessor initialized with configurable thresholds")
     
-    def assess_retrieval_quality(self, search_results: List[Dict[str, Any]], 
-                               query: str = "") -> ConfidenceAssessment:
+    def assess_retrieval_quality(self, search_results: List[Dict[str, Any]],
+                               query: str = "", has_temporal_indicators: bool = False) -> ConfidenceAssessment:
         """
         Comprehensive assessment of retrieval quality.
         
@@ -129,9 +129,16 @@ class ConfidenceAssessor:
             # Calculate overall confidence score
             overall_confidence = sum(confidence_factors) / len(confidence_factors)
 
+            # Apply temporal indicators penalty - users asking for "latest" info should get web search
+            if has_temporal_indicators:
+                logger.info(f"🕒 Temporal indicators detected - reducing confidence for freshness")
+                overall_confidence *= 0.6  # Reduce confidence by 40% to encourage web search
+                reasons.append("temporal_indicators_detected")
+
             # Debug logging for confidence assessment
             logger.info(f"Confidence factors: {confidence_factors}")
             logger.info(f"Query type: {query_type}, Overall confidence: {overall_confidence:.3f}")
+            logger.info(f"Has temporal indicators: {has_temporal_indicators}")
             logger.info(f"Reasons: {reasons}")
 
             # Determine confidence level and recommendation
