@@ -5022,46 +5022,83 @@ def add_source_attribution(response: str) -> str:
     return response
 
 def perform_secure_web_search(query: str) -> Dict[str, Any]:
-    """Perform secure web search using the new Intelligent Web System."""
+    """Perform secure web search using the new Intelligent Web System with enhanced error handling."""
     try:
-        logger.info(f"Starting intelligent web search for: {query}")
+        logger.info(f"🔍 Starting enhanced web search for: {query}")
 
-        # Step 1: Initialize the Intelligent Web System
-        web_system = get_intelligent_web_system()
+        # Step 1: Try the Intelligent Web System first
+        try:
+            web_system = get_intelligent_web_system()
+            logger.info(f"✅ Intelligent Web System initialized successfully")
 
-        # Step 2: Process query through intelligent routing
-        result = web_system.process_query(query)
+            # Step 2: Process query through intelligent routing
+            result = web_system.process_query(query)
+            logger.info(f"📊 Web system result: success={result.get('success')}, tool={result.get('tool_used')}")
 
-        if result['success']:
-            # Step 3: Format and enhance the result
-            formatted_response = format_intelligent_web_result(result, query)
+            if result['success']:
+                # Step 3: Format and enhance the result
+                formatted_response = format_intelligent_web_result(result, query)
 
-            # Step 4: Save to quarantine for vetting
-            save_intelligent_web_to_quarantine(result, query)
+                # Step 4: Save to quarantine for vetting
+                save_intelligent_web_to_quarantine(result, query)
 
-            # Step 5: Generate AI-enhanced response
-            web_response = generate_intelligent_web_response(query, result)
+                # Step 5: Generate AI-enhanced response
+                web_response = generate_intelligent_web_response(query, result)
 
-            return {
-                'success': True,
-                'error': None,
-                'response': web_response,
-                'sources': extract_sources_from_result(result),
-                'content_count': count_content_items(result),
-                'method': 'intelligent_web_system',
-                'tool_used': result.get('tool_used', 'unknown'),
-                'routing_info': result.get('routing_decision', {})
-            }
+                logger.info(f"✅ Intelligent web search successful using {result.get('tool_used', 'unknown')}")
+                return {
+                    'success': True,
+                    'error': None,
+                    'response': web_response,
+                    'sources': extract_sources_from_result(result),
+                    'content_count': count_content_items(result),
+                    'method': 'intelligent_web_system',
+                    'tool_used': result.get('tool_used', 'unknown'),
+                    'routing_info': result.get('routing_decision', {})
+                }
+            else:
+                logger.warning(f"⚠️ Intelligent web system failed: {result.get('error')}")
+
+        except Exception as e:
+            logger.error(f"❌ Intelligent web system error: {e}")
+
+        # Step 6: Fallback to enhanced RSS search
+        logger.info(f"🔄 Falling back to enhanced RSS search")
+        rss_result = perform_enhanced_rss_search(query)
+
+        if rss_result['success']:
+            logger.info(f"✅ RSS fallback successful")
+            return rss_result
         else:
-            # Fallback to original RSS method if intelligent system fails
-            logger.warning(f"Intelligent web system failed: {result.get('error')}, falling back to RSS")
-            return perform_rss_fallback_search(query)
+            logger.warning(f"⚠️ RSS fallback also failed: {rss_result.get('error')}")
 
-    except Exception as e:
-        logger.error(f"Secure web search failed: {e}")
+        # Step 7: Final fallback to simple web search
+        logger.info(f"🔄 Falling back to simple web search")
+        simple_result = perform_simple_web_search(query)
+
+        if simple_result['success']:
+            logger.info(f"✅ Simple web search successful")
+            return simple_result
+        else:
+            logger.error(f"❌ All web search methods failed")
+
+        # If all methods fail, return a helpful error
         return {
             'success': False,
-            'error': str(e),
+            'error': 'All web search methods failed - please check internet connectivity and try again',
+            'response': None,
+            'debug_info': {
+                'intelligent_system_attempted': True,
+                'rss_fallback_attempted': True,
+                'simple_search_attempted': True
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Critical web search error: {e}")
+        return {
+            'success': False,
+            'error': f"Critical web search error: {str(e)}",
             'response': None
         }
 
@@ -5593,6 +5630,187 @@ def create_ai_summary_from_result(result: Dict[str, Any], query: str) -> str:
     except Exception as e:
         logger.error(f"AI summary creation failed: {e}")
         return f"Error creating AI summary: {e}"
+
+def perform_enhanced_rss_search(query: str) -> Dict[str, Any]:
+    """Enhanced RSS search with better error handling and multiple sources."""
+    try:
+        logger.info(f"🔍 Enhanced RSS search for: {query}")
+
+        # Try multiple RSS sources
+        rss_sources = [
+            f"https://news.google.com/rss/search?q={query.replace(' ', '+')}&hl=en&gl=US&ceid=US:en",
+            f"https://feeds.bbci.co.uk/news/rss.xml",
+            f"https://rss.cnn.com/rss/edition.rss",
+            f"https://feeds.reuters.com/reuters/topNews"
+        ]
+
+        all_articles = []
+        successful_sources = 0
+
+        for source_url in rss_sources:
+            try:
+                logger.info(f"📡 Trying RSS source: {source_url}")
+                rss_result = fetch_rss_content(source_url)
+
+                if rss_result['success'] and rss_result.get('articles'):
+                    articles = rss_result['articles']
+                    # Filter articles relevant to query
+                    relevant_articles = [
+                        article for article in articles
+                        if any(term.lower() in article.get('title', '').lower() + ' ' + article.get('description', '').lower()
+                               for term in query.split())
+                    ]
+
+                    if relevant_articles:
+                        all_articles.extend(relevant_articles[:3])  # Top 3 from each source
+                        successful_sources += 1
+                        logger.info(f"✅ Found {len(relevant_articles)} relevant articles from {source_url}")
+
+            except Exception as e:
+                logger.warning(f"⚠️ RSS source failed {source_url}: {e}")
+                continue
+
+        if all_articles:
+            # Format response
+            response_parts = [f"**Web Search Results for: {query}**", ""]
+            response_parts.append(f"*Found {len(all_articles)} articles from {successful_sources} RSS sources*")
+            response_parts.append("")
+
+            for i, article in enumerate(all_articles[:10], 1):  # Limit to top 10
+                title = article.get('title', 'No title')
+                description = article.get('description', 'No description')
+                link = article.get('link', '')
+
+                response_parts.append(f"**{i}. {title}**")
+                if description:
+                    response_parts.append(f"{description[:200]}...")
+                if link:
+                    response_parts.append(f"🔗 [Read more]({link})")
+                response_parts.append("")
+
+            return {
+                'success': True,
+                'error': None,
+                'response': '\n'.join(response_parts),
+                'sources': [article.get('link', '') for article in all_articles],
+                'content_count': len(all_articles),
+                'method': 'enhanced_rss'
+            }
+        else:
+            return {
+                'success': False,
+                'error': f'No relevant articles found from {len(rss_sources)} RSS sources',
+                'response': None
+            }
+
+    except Exception as e:
+        logger.error(f"❌ Enhanced RSS search failed: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'response': None
+        }
+
+def perform_simple_web_search(query: str) -> Dict[str, Any]:
+    """Simple web search using basic HTTP requests as final fallback."""
+    try:
+        logger.info(f"🔍 Simple web search for: {query}")
+
+        import requests
+        from urllib.parse import quote_plus
+
+        # Try DuckDuckGo instant answers API
+        try:
+            ddg_url = f"https://api.duckduckgo.com/?q={quote_plus(query)}&format=json&no_html=1&skip_disambig=1"
+            response = requests.get(ddg_url, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+
+                # Check for instant answer
+                if data.get('AbstractText'):
+                    abstract = data['AbstractText']
+                    source = data.get('AbstractSource', 'DuckDuckGo')
+                    url = data.get('AbstractURL', '')
+
+                    response_text = f"**Web Search Results for: {query}**\n\n"
+                    response_text += f"**{source}:**\n{abstract}\n\n"
+                    if url:
+                        response_text += f"🔗 [Read more]({url})\n\n"
+                    response_text += "*Source: DuckDuckGo Instant Answers*"
+
+                    return {
+                        'success': True,
+                        'error': None,
+                        'response': response_text,
+                        'sources': [url] if url else [],
+                        'content_count': 1,
+                        'method': 'duckduckgo_instant'
+                    }
+
+                # Check for related topics
+                elif data.get('RelatedTopics'):
+                    topics = data['RelatedTopics'][:5]  # Top 5 topics
+
+                    response_parts = [f"**Web Search Results for: {query}**", ""]
+                    response_parts.append("**Related Information:**")
+
+                    for i, topic in enumerate(topics, 1):
+                        if isinstance(topic, dict) and topic.get('Text'):
+                            text = topic['Text']
+                            url = topic.get('FirstURL', '')
+
+                            response_parts.append(f"**{i}.** {text}")
+                            if url:
+                                response_parts.append(f"🔗 [Read more]({url})")
+                            response_parts.append("")
+
+                    response_parts.append("*Source: DuckDuckGo Related Topics*")
+
+                    return {
+                        'success': True,
+                        'error': None,
+                        'response': '\n'.join(response_parts),
+                        'sources': [topic.get('FirstURL', '') for topic in topics if topic.get('FirstURL')],
+                        'content_count': len(topics),
+                        'method': 'duckduckgo_topics'
+                    }
+
+        except Exception as e:
+            logger.warning(f"⚠️ DuckDuckGo API failed: {e}")
+
+        # If DuckDuckGo fails, provide a helpful response
+        return {
+            'success': True,  # Mark as success to provide helpful info
+            'error': None,
+            'response': f"""**Web Search Results for: {query}**
+
+I attempted to search the web for current information about "{query}" but encountered technical difficulties with the search services.
+
+**What I tried:**
+- Intelligent web search system
+- RSS news feeds
+- DuckDuckGo instant answers
+
+**Suggestions:**
+1. **Check your internet connection** and try again
+2. **Rephrase your query** with different keywords
+3. **Upload relevant documents** through the Documents tab
+4. **Try a more specific search** with exact terms
+
+**Alternative:** You can manually search the web and upload any relevant documents or articles through the '📚 Documents' tab for me to analyze.""",
+            'sources': [],
+            'content_count': 0,
+            'method': 'helpful_fallback'
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Simple web search failed: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'response': None
+        }
 
 def perform_rss_fallback_search(query: str) -> Dict[str, Any]:
     """Fallback to RSS-based search if intelligent system fails."""
