@@ -9183,8 +9183,115 @@ def generate_response_with_conversation_buffer(prompt: str, force_local: bool = 
             logger.warning(f"Contextual relevance check failed: {e}")
             # Continue with normal flow if relevance check fails
 
-        # Generate the response using two-stage pipeline
-        response = generate_final_response(prompt, force_local)
+        # CRITICAL FIX: Add confidence assessment before response generation
+        # This ensures temporal indicators are processed and confidence is shown
+
+        # Check for temporal/freshness indicators
+        temporal_phrases = [
+            "current information", "latest information", "recent information",
+            "up to date", "most recent", "newest", "today", "this week", "this month",
+            "latest", "current", "recent", "fresh", "updated"
+        ]
+        # Be more specific about "new" to avoid false positives like "AI news"
+        detected_temporal_indicators = (
+            has_temporal_indicators or
+            any(phrase in prompt.lower() for phrase in temporal_phrases) or
+            " new " in f" {prompt.lower()} "  # Only match "new" as a standalone word
+        )
+
+        # Check for explicit web search requests (should bypass confidence assessment)
+        force_web_search = any(phrase in prompt.lower() for phrase in [
+            "search the web", "web search", "online search", "internet search",
+            "search google", "google search", "search online"
+        ])
+
+        # If explicit web search requested and not forced local, handle it directly
+        if force_web_search and not force_local:
+            logger.info(f"🌐 User explicitly requested direct web search: {prompt}")
+            with st.spinner("🔍 Searching the web as requested..."):
+                search_result = perform_secure_web_search(original_query or prompt)
+                if search_result['success']:
+                    response = search_result['response']
+                else:
+                    # Fall back to normal processing if web search fails
+                    logger.warning(f"Web search failed, falling back to normal processing: {search_result.get('error')}")
+                    response = generate_final_response(prompt, force_local)
+
+        # If not forced local and temporal indicators detected, do confidence assessment
+        elif not force_local and detected_temporal_indicators:
+            logger.info(f"🕒 Temporal indicators detected - performing confidence assessment")
+
+            # Perform confidence assessment
+            try:
+                from reasoning.confidence_assessor import get_confidence_assessor
+                confidence_assessor = get_confidence_assessor()
+
+                # Search memory for relevant information
+                memory_results = search_unified_memory(query=prompt, max_results=5)
+
+                # Assess confidence with temporal penalty
+                assessment = confidence_assessor.assess_retrieval_quality(
+                    memory_results, prompt, has_temporal_indicators=True
+                )
+
+                logger.info(f"🎯 Confidence assessment: {assessment.confidence_score:.2f} (temporal query)")
+
+                # Show confidence assessment to user
+                if memory_results:
+                    context_preview = memory_results[0].chunk.content[:200] + "..." if len(memory_results[0].chunk.content) > 200 else memory_results[0].chunk.content
+
+                    st.info(f"""🤔 I've checked my local knowledge...
+
+I found some relevant results in my knowledge base:
+"{context_preview}"
+
+**Confidence in current knowledge: {assessment.confidence_score:.1%}**
+
+Why I'm suggesting this: {', '.join(assessment.reasons)}
+
+Would you like me to search the web for more current information?""")
+
+                    # Show web search button
+                    if st.button("🌐 Search the Web for Latest Information", type="primary"):
+                        with st.spinner("🔍 Searching for current information..."):
+                            search_result = perform_secure_web_search(original_query or prompt)
+                            if search_result['success']:
+                                response = search_result['response']
+                            else:
+                                st.error(f"❌ Web search failed: {search_result['error']}")
+                                response = generate_final_response(prompt, force_local)
+                    else:
+                        # User chose to use local knowledge
+                        response = generate_final_response(prompt, force_local)
+                else:
+                    # No relevant memory found
+                    st.info(f"""🤔 I don't have specific information about "{prompt}" in my current knowledge base.
+
+**Confidence: {assessment.confidence_score:.1%}**
+
+Since you're asking for current information, would you like me to search the web?""")
+
+                    # Show web search button
+                    if st.button("🌐 Search the Web", type="primary"):
+                        with st.spinner("🔍 Searching for current information..."):
+                            search_result = perform_secure_web_search(original_query or prompt)
+                            if search_result['success']:
+                                response = search_result['response']
+                            else:
+                                st.error(f"❌ Web search failed: {search_result['error']}")
+                                response = generate_final_response(prompt, force_local)
+                    else:
+                        # User chose to proceed without web search
+                        response = generate_final_response(prompt, force_local)
+
+            except Exception as e:
+                logger.error(f"Confidence assessment failed: {e}")
+                # Fall back to normal processing
+                response = generate_final_response(prompt, force_local)
+
+        else:
+            # Normal processing for non-temporal queries or forced local
+            response = generate_final_response(prompt, force_local)
 
         # Add assistant response to conversation buffer
         try:
