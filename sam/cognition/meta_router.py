@@ -20,6 +20,7 @@ import logging
 from typing import Dict, Any, Optional, Tuple
 from enum import Enum
 from dataclasses import dataclass
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +31,22 @@ class QueryIntent(Enum):
     GENERAL_CHAT = "general_chat"             # Conversational interaction
     UNKNOWN = "unknown"                       # Unable to classify
 
+class QueryComplexity(Enum):
+    """Enumeration of query complexity levels for routing decisions."""
+    SIMPLE = "simple"          # Fast path: Direct tool use, minimal processing
+    MODERATE = "moderate"      # Standard path: Normal confidence assessment
+    COMPLEX = "complex"        # Full path: Complete reasoning pipeline
+
 @dataclass
 class RoutingDecision:
     """Result of query routing analysis."""
     intent: QueryIntent
+    complexity: QueryComplexity
     confidence: float
     reasoning: str
     suggested_action: str
     metadata: Dict[str, Any]
+    fast_path_eligible: bool = False
 
 class MetaRouter:
     """Enhanced Meta-Router with LLM-powered query classification."""
@@ -88,7 +97,86 @@ class MetaRouter:
                 r'information about'
             ]
         }
-    
+
+    def _init_complexity_patterns(self) -> Dict[str, list]:
+        """Initialize patterns for query complexity classification."""
+        return {
+            'simple_factual': [
+                r'\bwhat\s+is\s+the\s+(latest|current|price|stock|weather)\b',
+                r'\b(latest|current|today\'?s)\s+(price|stock|weather|news)\b',
+                r'\bstock\s+price\s+for\b', r'\bweather\s+in\b',
+                r'\btime\s+in\b', r'\bdate\s+today\b', r'\bcurrent\s+time\b'
+            ],
+            'simple_temporal': [
+                r'\b(latest|current|recent|today|now)\s+\w+\b',
+                r'\bwhat\'?s\s+the\s+(latest|current)\b',
+                r'\btoday\'?s\s+\w+\b', r'\brecent\s+\w+\b'
+            ],
+            'simple_lookup': [
+                r'\bwhat\s+is\s+\w+\b', r'\bwho\s+is\s+\w+\b',
+                r'\bdefine\s+\w+\b', r'\bmeaning\s+of\s+\w+\b'
+            ],
+            'complex_analytical': [
+                r'\banalyze\b', r'\bcompare\b', r'\bevaluate\b', r'\bassess\b',
+                r'\bexamine\b', r'\binvestigate\b', r'\bstrategic\b', r'\bimplications\b',
+                r'\bpros\s+and\s+cons\b', r'\badvantages\s+and\s+disadvantages\b',
+                r'\bimpact\s+of\b', r'\beffects\s+of\b'
+            ],
+            'complex_creative': [
+                r'\bwrite\s+a\b', r'\bcreate\s+a\b', r'\bgenerate\s+a\b',
+                r'\bbrainstorm\b', r'\bdesign\s+a\b', r'\bdevelop\s+a\b',
+                r'\bplan\s+for\b', r'\bstrategy\s+for\b'
+            ],
+            'complex_procedural': [
+                r'\bhow\s+to\s+\w+\s+\w+\s+\w+', # Multi-word how-to (complex)
+                r'\bstep\s+by\s+step\s+guide\b', r'\bdetailed\s+instructions\b',
+                r'\bcomplete\s+process\b', r'\bfull\s+workflow\b'
+            ]
+        }
+
+    def classify_query_complexity(self, query: str, intent: QueryIntent = None) -> QueryComplexity:
+        """
+        Classify query complexity to determine processing path.
+
+        Args:
+            query: The user's query text
+            intent: Optional pre-classified intent
+
+        Returns:
+            QueryComplexity level for routing decisions
+        """
+        query_lower = query.lower()
+        complexity_patterns = self._init_complexity_patterns()
+
+        # Check for simple patterns first (fast path candidates)
+        simple_indicators = 0
+        for pattern_type in ['simple_factual', 'simple_temporal', 'simple_lookup']:
+            for pattern in complexity_patterns[pattern_type]:
+                if re.search(pattern, query_lower):
+                    simple_indicators += 1
+
+        # Check for complex patterns
+        complex_indicators = 0
+        for pattern_type in ['complex_analytical', 'complex_creative', 'complex_procedural']:
+            for pattern in complexity_patterns[pattern_type]:
+                if re.search(pattern, query_lower):
+                    complex_indicators += 1
+
+        # Additional complexity factors
+        word_count = len(query.split())
+        has_multiple_questions = query.count('?') > 1
+        has_conjunctions = any(word in query_lower for word in ['and', 'but', 'however', 'also', 'additionally'])
+
+        # Classification logic
+        if complex_indicators > 0:
+            return QueryComplexity.COMPLEX
+        elif simple_indicators > 0 and word_count <= 10 and not has_multiple_questions:
+            return QueryComplexity.SIMPLE
+        elif word_count > 20 or has_multiple_questions or has_conjunctions:
+            return QueryComplexity.COMPLEX
+        else:
+            return QueryComplexity.MODERATE
+
     def route_query(self, query: str, context: Dict[str, Any] = None) -> RoutingDecision:
         """
         Route a user query to the appropriate SAM subsystem.
@@ -103,10 +191,12 @@ class MetaRouter:
         if not query or not query.strip():
             return RoutingDecision(
                 intent=QueryIntent.GENERAL_CHAT,
+                complexity=QueryComplexity.SIMPLE,
                 confidence=1.0,
                 reasoning="Empty query defaults to general chat",
                 suggested_action="engage_general_chat",
-                metadata={}
+                metadata={},
+                fast_path_eligible=True
             )
         
         # Try LLM classification first
@@ -241,21 +331,39 @@ Respond with JSON only:"""
         }
         
         suggested_action = action_mapping[intent]
-        
+
+        # Classify query complexity
+        complexity = self.classify_query_complexity(query, intent)
+
+        # Determine if eligible for fast path
+        fast_path_eligible = (
+            complexity == QueryComplexity.SIMPLE and
+            intent == QueryIntent.FACTUAL_QUESTION and
+            confidence > 0.7
+        )
+
+        # Enhance suggested action based on complexity
+        if fast_path_eligible:
+            suggested_action = "fast_path_" + suggested_action
+
         # Build metadata
         metadata = {
             'classification_method': 'llm',
             'keywords': result.get('keywords', []),
             'query_length': len(query),
+            'complexity_level': complexity.value,
+            'fast_path_eligible': fast_path_eligible,
             'llm_raw_response': result
         }
-        
+
         return RoutingDecision(
             intent=intent,
+            complexity=complexity,
             confidence=confidence,
             reasoning=result.get('reasoning', 'LLM classification'),
             suggested_action=suggested_action,
-            metadata=metadata
+            metadata=metadata,
+            fast_path_eligible=fast_path_eligible
         )
     
     def _fallback_classify_query(self, query: str, context: Dict[str, Any] = None) -> RoutingDecision:
@@ -293,19 +401,37 @@ Respond with JSON only:"""
             reasoning = "Pattern-based: No specific indicators found, defaulting to general chat"
             action = "engage_general_chat"
         
+        # Classify query complexity
+        complexity = self.classify_query_complexity(query, intent)
+
+        # Determine if eligible for fast path
+        fast_path_eligible = (
+            complexity == QueryComplexity.SIMPLE and
+            intent == QueryIntent.FACTUAL_QUESTION and
+            confidence > 0.6
+        )
+
+        # Enhance suggested action based on complexity
+        if fast_path_eligible:
+            action = "fast_path_" + action
+
         metadata = {
             'classification_method': 'pattern_fallback',
             'procedural_score': procedural_score,
             'factual_score': factual_score,
-            'query_length': len(query)
+            'query_length': len(query),
+            'complexity_level': complexity.value,
+            'fast_path_eligible': fast_path_eligible
         }
-        
+
         return RoutingDecision(
             intent=intent,
+            complexity=complexity,
             confidence=confidence,
             reasoning=reasoning,
             suggested_action=action,
-            metadata=metadata
+            metadata=metadata,
+            fast_path_eligible=fast_path_eligible
         )
     
     def get_routing_stats(self) -> Dict[str, Any]:

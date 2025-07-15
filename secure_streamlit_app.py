@@ -8708,11 +8708,29 @@ def diagnose_memory_retrieval(query: str) -> dict:
         return {'error': str(e), 'query': query}
 
 def generate_draft_response(prompt: str, force_local: bool = False) -> str:
-    """Generate a draft response using SAM's capabilities (Stage 1 of two-stage pipeline - Task 30 Phase 2)."""
+    """Generate a draft response using SAM's capabilities with Smart Router complexity classification."""
     try:
-        # CRITICAL FIX: Use the proper confidence assessment flow instead of bypassing it
-        # This ensures temporal indicators are detected and confidence assessment happens first
+        # PHASE 1: Smart Router Classification for Fast Path Detection
+        try:
+            from sam.cognition.meta_router import get_meta_router
+            router = get_meta_router()
 
+            # Get routing decision with complexity classification
+            routing_decision = router.route_query(prompt)
+
+            logger.info(f"🎯 Smart Router: {routing_decision.intent.value} | "
+                       f"Complexity: {routing_decision.complexity.value} | "
+                       f"Fast Path: {routing_decision.fast_path_eligible}")
+
+            # PHASE 2: Fast Path for Simple Queries
+            if routing_decision.fast_path_eligible and not force_local:
+                logger.info(f"🚀 Fast path activated for simple query: {prompt[:50]}...")
+                return handle_fast_path_query(prompt, routing_decision)
+
+        except Exception as e:
+            logger.warning(f"Smart Router classification failed, using standard flow: {e}")
+
+        # PHASE 3: Standard Flow for Complex Queries or Fast Path Failures
         # Check for temporal/freshness indicators (these should influence confidence, not bypass it)
         temporal_phrases = [
             "current information", "latest information", "recent information",
@@ -8752,6 +8770,100 @@ def generate_draft_response(prompt: str, force_local: bool = False) -> str:
     except Exception as e:
         logger.error(f"Error in generate_draft_response: {e}")
         return f"I encountered an error processing your request. Please try again."
+
+def handle_fast_path_query(prompt: str, routing_decision) -> str:
+    """
+    Handle simple queries through fast path with minimal processing overhead.
+
+    Args:
+        prompt: The user's query
+        routing_decision: Smart Router decision with complexity classification
+
+    Returns:
+        Response string or escalation to full pipeline
+    """
+    try:
+        logger.info(f"🚀 Fast Path Processing: {prompt[:50]}...")
+
+        # Quick confidence check for fast path
+        try:
+            from reasoning.confidence_assessor import get_confidence_assessor
+            confidence_assessor = get_confidence_assessor()
+
+            # Do minimal memory search for confidence assessment
+            memory_results = search_unified_memory(query=prompt, max_results=3)
+
+            # Quick confidence assessment
+            assessment = confidence_assessor.assess_retrieval_quality(
+                memory_results, prompt, has_temporal_indicators=True
+            )
+
+            logger.info(f"🎯 Fast Path Confidence: {assessment.confidence_score:.2f}")
+
+            # If confidence is very low, escalate to web search immediately
+            if assessment.confidence_score < 0.3:
+                logger.info(f"🌐 Fast path escalating to web search due to low confidence")
+                with st.spinner("🔍 Searching for current information..."):
+                    search_result = perform_secure_web_search(prompt)
+                    if search_result['success']:
+                        return search_result['response']
+                    else:
+                        # Fall back to standard pipeline
+                        logger.warning(f"Web search failed in fast path, escalating to full pipeline")
+                        return generate_enhanced_response_with_procedural_memory(
+                            prompt, force_local=False, has_temporal_indicators=True
+                        )
+
+            # If we have decent confidence, provide quick response with escalation option
+            elif assessment.confidence_score < 0.7:
+                # Format quick response with web search option
+                if memory_results:
+                    context_summary = memory_results[0].chunk.content[:300] + "..."
+                    response = f"""Based on my knowledge: {context_summary}
+
+**Confidence in current knowledge: {assessment.confidence_score:.1%}**
+
+This appears to be a request for current information. Would you like me to search the web for the latest details?
+
+🌐 **Interactive Web Search Available!**"""
+                    return response
+                else:
+                    # No relevant memory, offer web search
+                    return f"""I don't have specific information about "{prompt}" in my current knowledge base.
+
+**Confidence: {assessment.confidence_score:.1%}**
+
+Would you like me to search the web for current information about this topic?
+
+🌐 **Interactive Web Search Available!**"""
+
+            # High confidence - provide direct answer
+            else:
+                if memory_results:
+                    best_result = memory_results[0]
+                    return f"""Based on my knowledge: {best_result.chunk.content}
+
+*Source: {best_result.chunk.source}*
+*Confidence: {assessment.confidence_score:.1%}*"""
+                else:
+                    # Fallback to standard pipeline
+                    return generate_enhanced_response_with_procedural_memory(
+                        prompt, force_local=False, has_temporal_indicators=True
+                    )
+
+        except Exception as e:
+            logger.error(f"Fast path confidence assessment failed: {e}")
+            # Fall back to standard pipeline
+            return generate_enhanced_response_with_procedural_memory(
+                prompt, force_local=False, has_temporal_indicators=True
+            )
+
+    except Exception as e:
+        logger.error(f"Fast path processing failed: {e}")
+        # Fall back to standard pipeline
+        return generate_enhanced_response_with_procedural_memory(
+            prompt, force_local=False, has_temporal_indicators=True
+        )
 def generate_final_response(user_question: str, force_local: bool = False) -> str:
     """
     Optimized two-stage response generation with A/B testing and caching (Task 30 Phase 3).
