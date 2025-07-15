@@ -1000,6 +1000,14 @@ def render_sam_pro_sidebar():
         except Exception as e:
             logger.warning(f"Profile reasoning controls not available: {e}")
 
+        # Memory Control Center Link (moved up to ensure visibility)
+        st.subheader("🎛️ Memory Control Center")
+        if st.button("🎛️ Open Memory Control Center", use_container_width=True, type="secondary"):
+            st.session_state.show_memory_control_center = True
+            st.rerun()
+        st.caption("Advanced memory management and analytics")
+        st.markdown("---")
+
         # Manual Reasoning Style Controls (Phase 3 Integration)
         try:
             from sam.ui.reasoning_controls import render_reasoning_sidebar
@@ -1007,6 +1015,7 @@ def render_sam_pro_sidebar():
             st.markdown("---")
         except Exception as e:
             logger.warning(f"Reasoning style controls not available: {e}")
+            st.error(f"⚠️ Reasoning controls error: {e}")  # Show error in UI for debugging
 
         st.header("🔑 SAM Pro Activation")
 
@@ -1149,16 +1158,6 @@ def render_sam_pro_sidebar():
             st.caption("🎛️ You'll be asked before web searches occur")
         else:
             st.caption("⚡ Web searches happen automatically for current information")
-
-        # Separator
-        st.markdown("---")
-
-        # Memory Control Center Link
-        st.subheader("🎛️ Memory Control Center")
-        if st.button("🎛️ Open Memory Control Center", use_container_width=True, type="secondary"):
-            st.session_state.show_memory_control_center = True
-            st.rerun()
-        st.caption("Advanced memory management and analytics")
 
         # Separator
         st.markdown("---")
