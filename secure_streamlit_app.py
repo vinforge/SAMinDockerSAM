@@ -8879,9 +8879,71 @@ def generate_draft_response(prompt: str, force_local: bool = False) -> str:
         logger.error(f"Error in generate_draft_response: {e}")
         return f"I encountered an error processing your request. Please try again."
 
+def _is_mathematical_query(query: str) -> bool:
+    """Check if a query is mathematical and should be routed to calculator."""
+    math_keywords = [
+        'calculate', 'compute', 'math', 'arithmetic', 'add', 'subtract',
+        'multiply', 'divide', 'sum', 'product', 'square', 'root'
+    ]
+
+    query_lower = query.lower()
+
+    # Check for math keywords
+    if any(keyword in query_lower for keyword in math_keywords):
+        return True
+
+    # Check for mathematical symbols
+    math_symbols = ['+', '-', '*', '/', '=', '^', '%', '(', ')']
+    if any(symbol in query for symbol in math_symbols):
+        return True
+
+    # Check for simple arithmetic patterns like "45+434-434"
+    import re
+    arithmetic_pattern = r'^\s*\d+\s*[\+\-\*/]\s*\d+.*$'
+    if re.match(arithmetic_pattern, query.strip()):
+        return True
+
+    return False
+
+def _execute_calculator_tool(query: str) -> str:
+    """Execute calculator tool for mathematical queries."""
+    try:
+        from sam.orchestration.skills.calculator_tool import CalculatorTool
+
+        calculator = CalculatorTool()
+
+        # Check if calculator can handle this query
+        if not calculator.can_handle_query(query):
+            logger.info(f"Calculator cannot handle query: {query}")
+            return None
+
+        # Create a simple UIF for the calculator
+        from sam.core.uif import SAM_UIF
+
+        uif = SAM_UIF(
+            input_query=query,
+            user_id="fast_path_user",
+            session_id="fast_path_session"
+        )
+
+        # Execute the calculator
+        result = calculator.execute(uif)
+
+        if result.success and "calculation_result" in result.output_data:
+            calc_result = result.output_data["calculation_result"]
+            logger.info(f"🧮 Calculator result: {calc_result}")
+            return f"The answer is: **{calc_result}**"
+        else:
+            logger.warning(f"Calculator execution failed: {result.error_message}")
+            return None
+
+    except Exception as e:
+        logger.error(f"Calculator tool execution failed: {e}")
+        return None
+
 def handle_fast_path_query(prompt: str, routing_decision) -> str:
     """
-    Handle simple queries through fast path with minimal processing overhead.
+    Handle simple queries through fast path with tool routing.
 
     Args:
         prompt: The user's query
@@ -8893,7 +8955,19 @@ def handle_fast_path_query(prompt: str, routing_decision) -> str:
     try:
         logger.info(f"🚀 Fast Path Processing: {prompt[:50]}...")
 
-        # Quick confidence check for fast path
+        # PHASE 1: Check for tool routing (calculator, etc.)
+        try:
+            # Check if this is a mathematical query
+            if _is_mathematical_query(prompt):
+                logger.info(f"🧮 Mathematical query detected, routing to calculator")
+                calc_result = _execute_calculator_tool(prompt)
+                if calc_result:
+                    return calc_result
+
+        except Exception as e:
+            logger.warning(f"Tool routing failed: {e}")
+
+        # PHASE 2: Quick confidence check for knowledge-based queries
         try:
             from reasoning.confidence_assessor import get_confidence_assessor
             confidence_assessor = get_confidence_assessor()
@@ -9279,9 +9353,33 @@ def generate_response_with_conversation_buffer(prompt: str, force_local: bool = 
             logger.warning(f"Contextual relevance check failed: {e}")
             # Continue with normal flow if relevance check fails
 
-        # CRITICAL FIX: Add confidence assessment before response generation
-        # This ensures temporal indicators are processed and confidence is shown
+        # CRITICAL FIX: Smart Router FIRST, then confidence assessment
+        # This ensures tool routing (like calculator) happens before confidence assessment
 
+        # PHASE 1: Smart Router Classification for Tool Routing
+        try:
+            from sam.cognition.meta_router import get_meta_router
+            router = get_meta_router()
+
+            # Get routing decision with complexity classification
+            routing_decision = router.route_query(prompt)
+
+            logger.info(f"🎯 Smart Router: {routing_decision.intent.value} | "
+                       f"Complexity: {routing_decision.complexity.value} | "
+                       f"Fast Path: {routing_decision.fast_path_eligible}")
+
+            # PHASE 2: Fast Path for Simple Queries (like calculator)
+            if routing_decision.fast_path_eligible and not force_local:
+                logger.info(f"🚀 Fast path activated for simple query: {prompt[:50]}...")
+                response = handle_fast_path_query(prompt, routing_decision)
+                # If fast path succeeded, return immediately
+                if response and not response.startswith("I'm ready to help"):
+                    return response
+
+        except Exception as e:
+            logger.warning(f"Smart Router classification failed, continuing with confidence assessment: {e}")
+
+        # PHASE 3: Confidence Assessment for Temporal/Complex Queries
         # Check for temporal/freshness indicators
         temporal_phrases = [
             "current information", "latest information", "recent information",
