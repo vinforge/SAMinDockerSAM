@@ -1239,9 +1239,14 @@ def render_sam_pro_sidebar():
         else:
             status_items.append("🔐 Security: ❌ Locked")
 
-        # Memory status
-        if hasattr(st.session_state, 'secure_memory_store'):
+        # Memory status - use proper status function
+        memory_status = get_memory_store_status()
+        if memory_status == "ready":
             status_items.append("🧠 Memory: ✅ Ready")
+        elif memory_status == "loading":
+            status_items.append("🧠 Memory: 🔄 Loading")
+        elif memory_status == "error":
+            status_items.append("🧠 Memory: ❌ Error")
         else:
             status_items.append("🧠 Memory: ❌ Not Ready")
 
@@ -9358,8 +9363,8 @@ Would you like me to search the web for more current information?""")
                         # User chose to use local knowledge
                         response = generate_final_response(prompt, force_local)
                     else:
-                        # No button clicked yet - don't generate response, just show options
-                        return "Please choose whether to search the web or use local knowledge."
+                        # No button clicked yet - generate a placeholder response that will be replaced
+                        response = "I'm ready to help! Please choose whether to search the web for current information or use my existing knowledge."
                 else:
                     # No relevant memory found
                     st.info(f"""🤔 I don't have specific information about "{prompt}" in my current knowledge base.
@@ -9384,8 +9389,8 @@ Since you're asking for current information, would you like me to search the web
                         # User chose to proceed without web search
                         response = generate_final_response(prompt, force_local)
                     else:
-                        # No button clicked yet - don't generate response, just show options
-                        return "Please choose whether to search the web or answer with current knowledge."
+                        # No button clicked yet - generate a placeholder response that will be replaced
+                        response = "I'm ready to help! Please choose whether to search the web or answer with my current knowledge."
 
             except Exception as e:
                 logger.error(f"Confidence assessment failed: {e}")
