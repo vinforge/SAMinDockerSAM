@@ -8293,6 +8293,28 @@ def search_unified_memory(query: str, max_results: int = 5) -> list:
         logger.error(f"❌ Unified search failed: {e}")
         return []
 
+def debug_document_response_pipeline(prompt: str, context: str, has_uploaded_docs: bool) -> str:
+    """Debug function to help diagnose document response issues."""
+    debug_info = []
+    debug_info.append(f"🔍 DOCUMENT RESPONSE PIPELINE DEBUG")
+    debug_info.append(f"   📝 Query: {prompt}")
+    debug_info.append(f"   📄 Has uploaded docs: {has_uploaded_docs}")
+    debug_info.append(f"   📋 Context length: {len(context)} chars")
+    debug_info.append(f"   🎯 Context preview: {context[:300]}...")
+
+    # Check recent uploads
+    recent_uploads = st.session_state.get('recent_document_uploads', [])
+    debug_info.append(f"   📚 Recent uploads: {len(recent_uploads)} files")
+    for upload in recent_uploads[-3:]:
+        debug_info.append(f"      - {upload.get('filename', 'Unknown')}")
+
+    # Check memory store status
+    if hasattr(st.session_state, 'secure_memory_store'):
+        security_status = st.session_state.secure_memory_store.get_security_status()
+        debug_info.append(f"   🔒 Memory store chunks: {security_status.get('encrypted_chunk_count', 0)}")
+
+    return "\n".join(debug_info)
+
 def detect_document_query(query: str) -> bool:
     """
     Detect if a query is asking about uploaded documents, whitepapers, or local files.
@@ -8622,11 +8644,15 @@ def generate_draft_response(prompt: str, force_local: bool = False) -> str:
                 # Add document query context
                 st.session_state['last_query_type'] = 'document_specific'
                 st.session_state['document_query_detected'] = True
+                # Enable debug mode for document queries
+                st.session_state['debug_document_response'] = True
             else:
                 st.session_state['document_query_detected'] = False
+                st.session_state['debug_document_response'] = False
         except Exception as e:
             logger.warning(f"Document query detection failed: {e}")
             st.session_state['document_query_detected'] = False
+            st.session_state['debug_document_response'] = False
 
         # Phase 0: MANDATORY Interactive Web Search Choice Before Tool Selection (preserving 100% of functionality)
         # This MUST run before any tool selection to ensure user control over web searches
@@ -9372,40 +9398,104 @@ However, I'm currently experiencing processing delays. Your question about {prom
                         logger.error(f"TPV-enabled generation failed: {e}")
                         # Fall back to standard Ollama call
 
-                # Fallback: Standard Ollama API call
+                # Fallback: Standard Ollama API call with enhanced debugging
+                final_prompt = f"System: {system_prompt}\n\nUser: {user_prompt}\n\nAssistant:"
+
+                # Debug logging for document queries
+                logger.info(f"🔍 OLLAMA CALL DEBUG:")
+                logger.info(f"   📄 Has uploaded docs: {has_uploaded_docs}")
+                logger.info(f"   📝 Context length: {len(context)} chars")
+                logger.info(f"   🎯 System prompt length: {len(system_prompt)} chars")
+                logger.info(f"   📋 User prompt length: {len(user_prompt)} chars")
+                logger.info(f"   🔗 Final prompt length: {len(final_prompt)} chars")
+
                 ollama_response = requests.post(
                     "http://localhost:11434/api/generate",
                     json={
                         "model": "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:Q4_K_M",
-                        "prompt": f"System: {system_prompt}\n\nUser: {user_prompt}\n\nAssistant:",
+                        "prompt": final_prompt,
                         "stream": False,
                         "options": {
                             "temperature": 0.7,
                             "top_p": 0.9,
-                            "max_tokens": 500
+                            "max_tokens": 1000  # Increased for document responses
                         }
                     },
                     timeout=120  # Increased timeout to 120 seconds for complex analytical queries
                 )
 
+                logger.info(f"🔍 OLLAMA RESPONSE DEBUG:")
+                logger.info(f"   📊 Status code: {ollama_response.status_code}")
+
                 if ollama_response.status_code == 200:
                     response_data = ollama_response.json()
                     ai_response = response_data.get('response', '').strip()
 
+                    logger.info(f"   📝 Response length: {len(ai_response)} chars")
+                    logger.info(f"   📄 Response preview: {ai_response[:200]}...")
+
                     if ai_response:
+                        # Add session state tracking for successful document responses
+                        if has_uploaded_docs:
+                            st.session_state['last_successful_doc_query'] = prompt
+                            logger.info(f"✅ Successful document response generated")
                         return ai_response
                     else:
-                        logger.warning("Empty response from Ollama")
+                        logger.warning("❌ Empty response from Ollama - this is the core issue!")
+                        # Add debug information for document queries
+                        debug_info = ""
+                        if st.session_state.get('debug_document_response', False):
+                            debug_info = f"\n\n{debug_document_response_pipeline(prompt, context, has_uploaded_docs)}"
+
+                        # Return context directly if Ollama fails
+                        if has_uploaded_docs and context:
+                            logger.info("🔧 FALLBACK: Returning context directly due to empty Ollama response")
+                            return f"""Based on your uploaded document, here's the relevant information:
+
+{context}
+
+*Note: I found this information in your uploaded documents. The AI model response was empty, so I'm showing you the raw content directly.*{debug_info}"""
+                else:
+                    logger.error(f"❌ Ollama API error: {ollama_response.status_code} - {ollama_response.text}")
+                    # Return context directly if API fails
+                    if has_uploaded_docs and context:
+                        logger.info("🔧 FALLBACK: Returning context directly due to Ollama API error")
+                        return f"""Based on your uploaded document, here's the relevant information:
+
+{context}
+
+*Note: There was an API error, so I'm showing you the content directly from your documents.*"""
 
             except Exception as e:
                 logger.error(f"Ollama API call failed: {e}")
+                # Enhanced fallback for document queries
+                if has_uploaded_docs and context:
+                    logger.info("🔧 EXCEPTION FALLBACK: Returning document context directly")
+                    return f"""I found relevant information in your uploaded documents:
+
+{context}
+
+*Note: There was a technical issue with the AI response generation, so I'm showing you the content directly from your documents.*
+
+Would you like me to try processing your question again?"""
 
             # Fallback: return context with basic formatting
-            return f"""Based on {sources_text}, here's what I found:
+            if context:
+                return f"""Based on {sources_text}, here's what I found:
 
 {context}
 
 I'm SAM, your secure AI assistant. How can I help you further?"""
+            else:
+                logger.warning("❌ No context available for fallback response")
+                return f"""I apologize, but I couldn't find relevant information for your query: "{prompt}"
+
+This could be due to:
+- No matching documents in your uploaded files
+- Technical issues with document processing
+- Search terms that don't match document content
+
+Please try rephrasing your question or check if the relevant documents are uploaded."""
 
         else:
             # Check if we have any memories at all
