@@ -73,7 +73,6 @@ def check_dependencies():
     
     required_packages = [
         ('streamlit', 'Streamlit web framework'),
-        ('flask', 'Flask web server'),
         ('chromadb', 'ChromaDB vector database'),
         ('argon2', 'Argon2 password hashing'),
         ('cryptography', 'Cryptography library')
@@ -237,18 +236,6 @@ def launch_secure_streamlit():
     except Exception as e:
         print(f"❌ Failed to launch Secure Streamlit: {e}")
 
-def launch_secure_web_ui():
-    """Launch secure web UI."""
-    print("\n🌐 Launching SAM Secure Web UI...")
-    
-    try:
-        # Launch web UI with security
-        subprocess.run([sys.executable, "web_ui/app.py"])
-        
-    except KeyboardInterrupt:
-        print("\n👋 SAM Secure Web UI stopped by user")
-    except Exception as e:
-        print(f"❌ Failed to launch Secure Web UI: {e}")
 
 def launch_memory_ui():
     """Launch memory control center (now integrated into secure interface)."""
@@ -279,9 +266,9 @@ def launch_full_suite():
     """Launch full SAM suite with security."""
     print("\n🚀 Launching Full SAM Secure Suite...")
     print("This will start:")
-    print("  📱 Secure Streamlit App (port 8502) - Primary interface with integrated Memory Center")
-    print("  🌐 Secure Web UI (port 5001)")
-    print("  ✅ Memory Control Center is now integrated into the secure interface")
+    print("  📱 Secure Streamlit App (port 8502) - Complete SAM interface")
+    print("  ✅ Memory Control Center integrated into the main interface")
+    print("  🎛️ All features accessible through the unified interface")
 
     processes = []
 
@@ -363,7 +350,7 @@ def launch_full_suite():
 def main():
     """Main launcher function."""
     parser = argparse.ArgumentParser(description="SAM Secure Enclave Launcher")
-    parser.add_argument("--mode", choices=["web", "streamlit", "memory", "full", "migrate"], 
+    parser.add_argument("--mode", choices=["streamlit", "memory", "full", "migrate"],
                        default="full", help="Launch mode")
     parser.add_argument("--skip-checks", action="store_true", help="Skip dependency checks")
     parser.add_argument("--force-migration", action="store_true", help="Force data migration")
@@ -422,17 +409,15 @@ def main():
         print("✅ Encryption setup completed! Continuing with SAM launch...")
     
     # Launch based on mode
-    if args.mode == "web":
-        launch_secure_web_ui()
-    elif args.mode == "streamlit":
+    if args.mode == "streamlit":
         launch_secure_streamlit()
     elif args.mode == "memory":
         launch_memory_ui()
     elif args.mode == "full":
         launch_full_suite()
     else:
-        print(f"❌ Unknown mode: {args.mode}")
-        sys.exit(1)
+        # Default to full suite
+        launch_full_suite()
 
 if __name__ == "__main__":
     main()
