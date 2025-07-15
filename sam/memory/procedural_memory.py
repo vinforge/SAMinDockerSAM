@@ -270,7 +270,8 @@ class ProceduralMemoryStore:
             query_lower = query.lower()
             for procedure in self.procedures.values():
                 score = self._calculate_relevance_score(procedure, query_lower)
-                if score > 0.1:  # Relevance threshold
+                # Increased relevance threshold to reduce irrelevant matches
+                if score > 2.0:  # Higher threshold for better relevance
                     results.append((procedure, score))
 
         # Apply filters if provided
@@ -282,72 +283,85 @@ class ProceduralMemoryStore:
         return results
 
     def _calculate_relevance_score(self, procedure: Procedure, query_lower: str) -> float:
-        """Calculate relevance score using hybrid scoring model."""
+        """Calculate relevance score using hybrid scoring model with stricter matching."""
         score = 0.0
-        query_words = query_lower.split()
+        query_words = [word for word in query_lower.split() if len(word) > 2]  # Filter short words
+
+        # Skip common words that don't add meaning
+        stop_words = {'the', 'and', 'for', 'with', 'how', 'what', 'when', 'where', 'why', 'lets', 'let'}
+        meaningful_words = [word for word in query_words if word not in stop_words]
+
+        if not meaningful_words:
+            return 0.0  # No meaningful words to match
 
         # Name match (highest weight) - check both full query and individual words
         procedure_name_lower = procedure.name.lower()
         if query_lower in procedure_name_lower:
-            score += 3.0
+            score += 5.0  # Increased for exact phrase match
         else:
-            # Check individual words
-            for word in query_words:
-                if len(word) > 2 and word in procedure_name_lower:
-                    score += 1.5
+            # Check meaningful words only
+            name_word_matches = 0
+            for word in meaningful_words:
+                if word in procedure_name_lower:
+                    score += 2.0  # Increased weight for name matches
+                    name_word_matches += 1
+
+            # Bonus for multiple word matches in name
+            if name_word_matches > 1:
+                score += name_word_matches * 0.5
 
         # Tag matches (high weight)
         for tag in procedure.tags:
             tag_lower = tag.lower()
             if query_lower in tag_lower:
-                score += 2.0
+                score += 3.0  # Increased for exact phrase match
             else:
-                # Check individual words
-                for word in query_words:
-                    if len(word) > 2 and word in tag_lower:
-                        score += 1.0
+                # Check meaningful words only
+                for word in meaningful_words:
+                    if word in tag_lower:
+                        score += 1.5  # Increased weight for tag matches
 
         # Description match (medium weight)
         description_lower = procedure.description.lower()
         if query_lower in description_lower:
-            score += 1.5
+            score += 2.0  # Increased for exact phrase match
         else:
-            # Check individual words
-            for word in query_words:
-                if len(word) > 2 and word in description_lower:
-                    score += 0.8
+            # Check meaningful words only
+            for word in meaningful_words:
+                if word in description_lower:
+                    score += 1.0
 
-        # Step description matches (medium weight)
+        # Step description matches (lower weight, meaningful words only)
         for step in procedure.steps:
             step_desc_lower = step.description.lower()
             if query_lower in step_desc_lower:
                 score += 1.0
             else:
-                # Check individual words
-                for word in query_words:
-                    if len(word) > 2 and word in step_desc_lower:
-                        score += 0.5
+                # Check meaningful words only
+                for word in meaningful_words:
+                    if word in step_desc_lower:
+                        score += 0.3  # Reduced weight
 
             if step.details:
                 step_details_lower = step.details.lower()
                 if query_lower in step_details_lower:
                     score += 0.5
                 else:
-                    # Check individual words
-                    for word in query_words:
-                        if len(word) > 2 and word in step_details_lower:
-                            score += 0.3
+                    # Check meaningful words only
+                    for word in meaningful_words:
+                        if word in step_details_lower:
+                            score += 0.2  # Reduced weight
 
-        # Category match (low weight)
+        # Category match (low weight, meaningful words only)
         if procedure.category:
             category_lower = procedure.category.lower()
             if query_lower in category_lower:
-                score += 0.5
+                score += 1.0  # Increased for exact category match
             else:
-                # Check individual words
-                for word in query_words:
-                    if len(word) > 2 and word in category_lower:
-                        score += 0.3
+                # Check meaningful words only
+                for word in meaningful_words:
+                    if word in category_lower:
+                        score += 0.5
 
         # Boost based on usage (recency and popularity)
         if procedure.execution_count > 0:

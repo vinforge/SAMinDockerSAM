@@ -8910,7 +8910,7 @@ def generate_draft_response(prompt: str, force_local: bool = False) -> str:
                         assessment.confidence_score = 0.1
                         assessment.explanation = "I'm forcing low confidence to test interactive web search buttons."
 
-                    escalation_message, escalation_id = create_web_search_escalation_message(assessment, prompt)
+                    escalation_message, escalation_id = create_web_search_escalation_message(assessment, original_query or prompt)
                     logger.info(f"🌐 MANDATORY Pre-tool escalation created with ID: {escalation_id}")
                     logger.info(f"🌐 ✅ RETURNING ESCALATION TUPLE: message={type(escalation_message)}, id={escalation_id}")
                     return escalation_message, escalation_id
@@ -9263,7 +9263,7 @@ def generate_draft_response(prompt: str, force_local: bool = False) -> str:
                 # Phase 8.3: Check if web search escalation should be offered (preserving 100% of functionality)
                 if assessment.status == "NOT_CONFIDENT":
                     logger.info(f"🌐 Web search escalation triggered due to low confidence")
-                    escalation_message, escalation_id = create_web_search_escalation_message(assessment, prompt)
+                    escalation_message, escalation_id = create_web_search_escalation_message(assessment, original_query or prompt)
                     logger.info(f"🌐 Created escalation message with ID: {escalation_id}")
                     logger.info(f"🌐 Returning escalation tuple: ({type(escalation_message)}, {type(escalation_id)})")
                     return escalation_message, escalation_id
@@ -9746,7 +9746,7 @@ Please try rephrasing your question or check if the relevant documents are uploa
                         # Offer web search for knowledge gaps
                         if assessment.status == "NOT_CONFIDENT":
                             logger.info(f"🌐 Web search escalation triggered for knowledge gap")
-                            escalation_message, escalation_id = create_web_search_escalation_message(assessment, prompt)
+                            escalation_message, escalation_id = create_web_search_escalation_message(assessment, original_query or prompt)
                             logger.info(f"🌐 Created knowledge gap escalation with ID: {escalation_id}")
                             logger.info(f"🌐 Returning knowledge gap escalation tuple: ({type(escalation_message)}, {type(escalation_id)})")
                             return escalation_message, escalation_id
@@ -10068,7 +10068,7 @@ def generate_final_response(user_question: str, force_local: bool = False) -> st
         logger.error(f"Two-stage response generation failed: {e}")
         return f"I apologize, but I encountered an error while processing your request: {e}"
 
-def generate_response_with_conversation_buffer(prompt: str, force_local: bool = False) -> str:
+def generate_response_with_conversation_buffer(prompt: str, force_local: bool = False, original_query: str = None) -> str:
     """
     Enhanced conversation buffer wrapper with contextual relevance (Task 31 Phase 1).
 
@@ -13361,20 +13361,23 @@ def simulate_self_reflect_for_demo(response_text: str, query: str):
 def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: bool = False):
     """Enhanced response generation with procedural memory integration."""
     try:
+        # Store the original user query for web search escalation
+        original_user_query = prompt
+
         # Step 1: Check if procedural memory feature is enabled
         from sam.entitlements.feature_manager import is_feature_enabled
 
         if not is_feature_enabled('procedural_memory'):
             # Feature not enabled - fall back to normal processing
             logger.debug("Procedural memory feature not enabled, using standard response generation")
-            return generate_response_with_conversation_buffer(prompt, force_local=force_local)
+            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
 
         # Step 2: Check if procedural memory integration is available
         from sam.chat.procedural_chat_handler import get_procedural_chat_handler
 
         procedural_handler = get_procedural_chat_handler()
 
-        # Step 2: Process query through procedural chat handler
+        # Step 3: Process query through procedural chat handler
         user_context = {
             'session_id': st.session_state.get('session_id', 'default'),
             'chat_history_length': len(st.session_state.get('chat_history', [])),
@@ -13383,7 +13386,7 @@ def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: 
 
         processing_result = procedural_handler.process_user_query(prompt, user_context)
 
-        # Step 3: Handle based on processing result
+        # Step 4: Handle based on processing result
         if processing_result.get('response_type') == 'procedural_guidance':
             # Procedural memory found - enhance the prompt
             enhanced_prompt = processing_result.get('suggested_prompt_enhancement', prompt)
@@ -13393,8 +13396,8 @@ def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: 
                 with st.expander("🧠 **SAM's Procedural Memory** (Click to view)", expanded=False):
                     st.markdown(processing_result['procedural_context'])
 
-            # Generate response with enhanced context
-            return generate_response_with_conversation_buffer(enhanced_prompt, force_local=force_local)
+            # Generate response with enhanced context but preserve original query for escalation
+            return generate_response_with_conversation_buffer(enhanced_prompt, force_local=force_local, original_query=original_user_query)
 
         elif processing_result.get('response_type') == 'procedural_not_found':
             # No procedures found - offer to create one
@@ -13404,21 +13407,21 @@ def generate_enhanced_response_with_procedural_memory(prompt: str, force_local: 
             st.info("🧠 **Procedural Memory**: " + suggested_response)
 
             # Generate normal response
-            return generate_response_with_conversation_buffer(prompt, force_local=force_local)
+            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
 
         else:
             # General chat or factual query - proceed normally
-            return generate_response_with_conversation_buffer(prompt, force_local=force_local)
+            return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
 
     except ImportError:
         # Procedural memory not available - fall back to normal processing
         logger.info("Procedural memory not available, using standard response generation")
-        return generate_response_with_conversation_buffer(prompt, force_local=force_local)
+        return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
 
     except Exception as e:
         # Error in procedural processing - fall back to normal processing
         logger.error(f"Error in procedural memory integration: {e}")
-        return generate_response_with_conversation_buffer(prompt, force_local=force_local)
+        return generate_response_with_conversation_buffer(prompt, force_local=force_local, original_query=original_user_query)
 
 def render_procedural_memory_integrated():
     """Render the Procedural Memory interface integrated into Memory Control Center."""
