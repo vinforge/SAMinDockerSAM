@@ -1644,7 +1644,7 @@ def render_conversation_history_sidebar():
             st.markdown("### 📚 Conversation History")
 
             # New Chat button
-            if st.button("➕ New Chat", use_container_width=True, type="primary"):
+            if st.button("➕ New Chat", use_container_width=True, type="primary", key="new_chat_sidebar"):
                 try:
                     from sam.conversation.contextual_relevance import get_contextual_relevance_engine
                     from sam.session.state_manager import get_session_manager
@@ -9343,7 +9343,10 @@ Why I'm suggesting this: {', '.join(assessment.reasons)}
 Would you like me to search the web for more current information?""")
 
                     # Show web search button
-                    if st.button("🌐 Search the Web for Latest Information", type="primary"):
+                    web_search_clicked = st.button("🌐 Search the Web for Latest Information", type="primary", key="web_search_with_memory")
+                    local_knowledge_clicked = st.button("📚 Use Local Knowledge", type="secondary", key="local_knowledge_with_memory")
+
+                    if web_search_clicked:
                         with st.spinner("🔍 Searching for current information..."):
                             search_result = perform_secure_web_search(original_query or prompt)
                             if search_result['success']:
@@ -9351,9 +9354,12 @@ Would you like me to search the web for more current information?""")
                             else:
                                 st.error(f"❌ Web search failed: {search_result['error']}")
                                 response = generate_final_response(prompt, force_local)
-                    else:
+                    elif local_knowledge_clicked:
                         # User chose to use local knowledge
                         response = generate_final_response(prompt, force_local)
+                    else:
+                        # No button clicked yet - don't generate response, just show options
+                        return "Please choose whether to search the web or use local knowledge."
                 else:
                     # No relevant memory found
                     st.info(f"""🤔 I don't have specific information about "{prompt}" in my current knowledge base.
@@ -9363,7 +9369,10 @@ Would you like me to search the web for more current information?""")
 Since you're asking for current information, would you like me to search the web?""")
 
                     # Show web search button
-                    if st.button("🌐 Search the Web", type="primary"):
+                    web_search_clicked = st.button("🌐 Search the Web", type="primary", key="web_search_no_memory")
+                    local_only_clicked = st.button("📚 Answer with Current Knowledge", type="secondary", key="local_only_no_memory")
+
+                    if web_search_clicked:
                         with st.spinner("🔍 Searching for current information..."):
                             search_result = perform_secure_web_search(original_query or prompt)
                             if search_result['success']:
@@ -9371,9 +9380,12 @@ Since you're asking for current information, would you like me to search the web
                             else:
                                 st.error(f"❌ Web search failed: {search_result['error']}")
                                 response = generate_final_response(prompt, force_local)
-                    else:
+                    elif local_only_clicked:
                         # User chose to proceed without web search
                         response = generate_final_response(prompt, force_local)
+                    else:
+                        # No button clicked yet - don't generate response, just show options
+                        return "Please choose whether to search the web or answer with current knowledge."
 
             except Exception as e:
                 logger.error(f"Confidence assessment failed: {e}")
